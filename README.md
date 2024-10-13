@@ -1,7 +1,15 @@
 # hinyb-Dropability
 This is a small mod that adds the ability to drop items.
 
+## How to use
+1. Place your mouse on the icon of the item you want to drop.
+2. Press delete to drop it!
+
 ---
+
+## How to binding 
+* Open the ImGUI window display (default key is `Insert`)
+* [List of possible keys for the toggle](https://oprypin.github.io/crystal-imgui/ImGui/ImGuiKey.html)
 
 ## Installation Instructions
 
