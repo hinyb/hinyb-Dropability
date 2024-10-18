@@ -26,7 +26,7 @@ local drop_item_id_list = {}
 local drop_item, drop_item_handler
 local item_tooltip, lang_map, item_cache
 local cached_dup_num
-local doit = false
+local is_dropped = false
 local function get_player_with_m_id(m_id)
     local players = Instance.find_all(gm.constants.oP)
     for _, p in ipairs(players) do
@@ -75,14 +75,14 @@ gm.pre_script_hook(gm.constants.item_give, function(self, other, result, args)
             cached_dup_num = gm.array_get(other.inventory_item_stack, 95)
             gm.array_set(other.inventory_item_stack, 95, 0)
             table.remove(drop_item_id_list, index)
-            doit = true
+            is_dropped = true
         end
     end
 end)
 gm.post_script_hook(gm.constants.item_give, function(self, other, result, args)
-    if doit then
+    if is_dropped then
         cached_dup_num = nil
-        doit = false
+        is_dropped = false
     end
 end)
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
