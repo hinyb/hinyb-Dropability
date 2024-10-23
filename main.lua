@@ -103,11 +103,13 @@ gui.add_always_draw_imgui(function()
     if ImGui.IsKeyPressed(params['drop_item_key'], false) then
         local player = Player.get_client()
         if Instance.exists(player) then
-            if item_tooltip ~= nil then
-                local item_object_id, item_id = find_item_with_localized(item_tooltip, player)
-                if item_object_id ~= nil and item_id ~= nil then
-                    if drop_item ~= nil then
-                        drop_item(player.value, item_id, item_object_id)
+            if gm.variable_global_get("_ui_hover_tooltip_state") ~= nil then
+                if item_tooltip ~= nil then
+                    local item_object_id, item_id = find_item_with_localized(item_tooltip, player)
+                    if item_object_id ~= nil and item_id ~= nil then
+                        if drop_item ~= nil then
+                            drop_item(player.value, item_id, item_object_id)
+                        end
                     end
                 end
             end
