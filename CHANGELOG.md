@@ -1,3 +1,6 @@
+v2.0.0
+* Add ability to drop ability!
+
 v1.0.3
 * Add tooltip check to avoid wrong behaive.
 

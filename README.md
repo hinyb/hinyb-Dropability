@@ -1,8 +1,9 @@
 # hinyb-Dropability
-This is a small mod that adds the ability to drop items.
+This is a small mod that adds the ability to drop items or abilities.
+Some abilities aren't droppable according to https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer/blob/main/bugged%20skills.txt
 
 ## How to use
-1. Place your mouse on the icon of the item you want to drop.
+1. Place your mouse on the icon of the item or ability you want to drop.
 2. Press delete to drop it!
 
 ---
@@ -20,3 +21,4 @@ https://github.com/hinyb/hinyb-Dropability/issues
 
 ## Special Thanks To
 * The Return Of Modding team
+* https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer Tell me that dropping abilities  is't impossible.
