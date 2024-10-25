@@ -1,6 +1,7 @@
 # hinyb-Dropability
 This is a small mod that adds the ability to drop items or abilities.
 Some abilities still have some compatibility issues on some special characters.
+Need more time to fix it.If you have any clues about how to fix it, please tell me.
 
 ## How to use
 1. Place your mouse on the icon of the item or ability you want to drop.
