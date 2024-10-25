@@ -1,3 +1,6 @@
+v2.0.1
+* Fix bug of the miner's ability.
+
 v2.0.0
 * Add ability to drop ability!
 

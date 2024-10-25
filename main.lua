@@ -31,8 +31,8 @@ local pickup_is_dropped = false
 local drop_skill
 local activate_skill
 local skills_cache
-local bugged_skills = {57,58,59,62,63} --Thanks for https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer
-local function skill_check(skill_id, player)
+local bugged_skills = {} --Thanks for https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer
+local function skill_check(skill_id)
     for _,v in pairs(bugged_skills) do
         if skill_id == v then
             return false
@@ -156,7 +156,104 @@ gm.post_script_hook(gm.constants.instance_create, function(self, other, result, 
         end
     end
 end)
+local miner_heat_bar_flag = true
+gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
 
+    if miner_heat_bar_flag then
+        if result.value == -4 or result.value == 0 then
+            miner_heat_bar_flag = false
+            gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
+            log.info("first try to create")
+            result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self)
+            log.info("result replace create")
+            miner_heat_bar_flag = true
+        end
+    end
+end)
+gm.post_code_execute("gml_Object_oP_Create_0", function(self, other)
+    self.charged = false
+    self._miner_charged_elder_kill_count = 0.0
+end)
+--[[
+gm.pre_script_hook(102148, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102153, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102154, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102159, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102160, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102161, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102162, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102163, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102164, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102165, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102166, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102167, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102168, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102169, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102170, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102171, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102172, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102173, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102174, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102175, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102176, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102177, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102178, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102179, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102180, function(self, other, result, args)
+    return nil
+end)
+gm.pre_script_hook(102181, function(self, other, result, args)
+    return nil
+end)
+--]]
 local function find_item_with_localized(name, player)
     local inventory = gm.variable_instance_get(player.value.id, "inventory_item_order")
     local size = gm.array_length(inventory)
