@@ -1,3 +1,7 @@
+v2.0.2
+* Fix bar's incorrect behaive.
+* Find more compatibility issues and correct the description.
+
 v2.0.1
 * Fix bug of the miner's ability.
 

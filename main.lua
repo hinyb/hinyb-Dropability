@@ -156,104 +156,40 @@ gm.post_script_hook(gm.constants.instance_create, function(self, other, result, 
         end
     end
 end)
-local miner_heat_bar_flag = true
+local miner_heat_bar_flag = false
 gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
-
-    if miner_heat_bar_flag then
+    if not miner_heat_bar_flag then
         if result.value == -4 or result.value == 0 then
-            miner_heat_bar_flag = false
-            gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
-            log.info("first try to create")
-            result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self)
-            log.info("result replace create")
             miner_heat_bar_flag = true
+            gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
+            result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self)
         end
     end
 end)
+gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
+    miner_heat_bar_flag = true
+end)
+local drifter_scrap_bar_flag = false
+gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self, other, result, args)
+    if not drifter_scrap_bar_flag then
+        if result.value == -4 or result.value == 0 then
+            drifter_scrap_bar_flag = true
+            gm.call("gml_Script__survivor_drifter_create_scrap_bar", self, other)
+            result = gm.call("gml_Script__survivor_drifter_find_scrap_bar", self, other, self)
+        end
+    end
+end)
+gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
+    drifter_scrap_bar_flag = true
+end)
 gm.post_code_execute("gml_Object_oP_Create_0", function(self, other)
+    drifter_scrap_bar_flag = false
+    miner_heat_bar_flag = false
     self.charged = false
     self._miner_charged_elder_kill_count = 0.0
+    self.sniper_bonus = 0.0
+    self.dash_timer = 0.0
 end)
---[[
-gm.pre_script_hook(102148, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102153, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102154, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102159, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102160, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102161, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102162, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102163, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102164, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102165, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102166, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102167, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102168, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102169, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102170, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102171, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102172, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102173, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102174, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102175, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102176, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102177, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102178, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102179, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102180, function(self, other, result, args)
-    return nil
-end)
-gm.pre_script_hook(102181, function(self, other, result, args)
-    return nil
-end)
---]]
 local function find_item_with_localized(name, player)
     local inventory = gm.variable_instance_get(player.value.id, "inventory_item_order")
     local size = gm.array_length(inventory)
