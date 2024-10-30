@@ -1,3 +1,6 @@
+v2.0.3
+* Fix bug that causes crash. But still have some compatibility issues.
+
 v2.0.2
 * Fix bar's incorrect behaive.
 * Find more compatibility issues and correct the description.

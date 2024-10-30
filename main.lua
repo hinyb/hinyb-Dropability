@@ -31,9 +31,9 @@ local pickup_is_dropped = false
 local drop_skill
 local activate_skill
 local skills_cache
-local bugged_skills = {} --Thanks for https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer
+local bugged_skills = {} -- Thanks for https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer
 local function skill_check(skill_id)
-    for _,v in pairs(bugged_skills) do
+    for _, v in pairs(bugged_skills) do
         if skill_id == v then
             return false
         end
@@ -48,13 +48,13 @@ local function get_instance_with_m_id(id, m_id)
     end
 end
 local need_to_update = {}
-local function setupSkill(target,params)
+local function setupSkill(target, params)
     gm._mod_instance_set_sprite(target, params.skill_sprite)
     target.image_index = params.skill_subimage
     target.translation_key = params.skill_translation_key
     target.skill_id = params.skill_id
     target.slot_index = params.slot_index
-    target.text = gm.ds_map_find_value(lang_map, target.translation_key..".name")
+    target.text = gm.ds_map_find_value(lang_map, target.translation_key .. ".name")
 end
 local function setupUpdateSkill(slot_index, skill_params)
     need_to_update.slot_index = slot_index
@@ -98,7 +98,7 @@ local function initialize(host)
             gm.instance_create(player.x - 10, player.y - 20, skillPickup.value)
             gm.actor_skill_set(player, slot_index, 0) -- DummySkill
         end
-        local drop_skill_host_handler = function (player_m_id, slot_index, skill_params)
+        local drop_skill_host_handler = function(player_m_id, slot_index, skill_params)
             drop_skill(get_instance_with_m_id(gm.constants.oP, player_m_id).value, slot_index, skill_params)
         end
         Net.register("drop_skill_host_handler", drop_skill_host_handler)
@@ -107,11 +107,12 @@ local function initialize(host)
             Net.send("drop_item_handler", 1, Player.get_host().value.user_name, player.m_id, item_id, item_object_id)
         end
 
-        drop_skill = function (player, slot_index, skill_params)
+        drop_skill = function(player, slot_index, skill_params)
             gm.actor_skill_set(player, slot_index, 0)
-            Net.send("drop_skill_host_handler", 1, Player.get_host().value.user_name, player.m_id, slot_index, skill_params)
+            Net.send("drop_skill_host_handler", 1, Player.get_host().value.user_name, player.m_id, slot_index,
+                skill_params)
         end
-        local drop_skill_client_handler = function (slot_index, ...)
+        local drop_skill_client_handler = function(slot_index, ...)
             setupUpdateSkill(slot_index, {...})
         end
         Net.register("drop_skill_client_handler", drop_skill_client_handler)
@@ -151,7 +152,7 @@ end)
 gm.post_script_hook(gm.constants.instance_create, function(self, other, result, args)
     if result.value.__object_index == skillPickup.value then
         if need_to_update.slot_index ~= nil then
-            setupSkill(result.value,need_to_update)
+            setupSkill(result.value, need_to_update)
             need_to_update = {}
         end
     end
@@ -182,13 +183,34 @@ end)
 gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
     drifter_scrap_bar_flag = true
 end)
-gm.post_code_execute("gml_Object_oP_Create_0", function(self, other)
+local function set_default_value(target, member, value)
+    if target[member] == nil then
+        target[member] = false or value
+    end
+end
+local function set_default_value_sprite(target, member, num)
+    if target[member .. "_half"] == nil or gm.array_length(target[member .. "_half"]) == 0 then
+        target[member .. "_half"] = gm.array_create(num, 0.0)
+        gm.array_set(target[member .. "_half"], 0, target[member])
+        gm.array_set(target[member .. "_half"], 1, target[member])
+    end
+end
+gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     drifter_scrap_bar_flag = false
     miner_heat_bar_flag = false
-    self.charged = false
-    self._miner_charged_elder_kill_count = 0.0
-    self.sniper_bonus = 0.0
-    self.dash_timer = 0.0
+    set_default_value(self, "charged")
+    set_default_value(self, "_miner_charged_elder_kill_count")
+    set_default_value(self, "sniper_bonus")
+    set_default_value(self, "dash_timer")
+    set_default_value(self, "ydisp")
+    set_default_value(self, "above_50_health", true)
+
+    self.sprite_walk_last = self.sprite_walk -- I don't know what this is for, but it may cause bug when replacing skills. So i change its value to sprite_walk. 
+    set_default_value_sprite(self, "sprite_idle", 3)
+    set_default_value_sprite(self, "sprite_fall", 3)
+    set_default_value_sprite(self, "sprite_jump_peak", 3)
+    set_default_value_sprite(self, "sprite_jump", 3)
+    set_default_value_sprite(self, "sprite_walk", 4)
 end)
 local function find_item_with_localized(name, player)
     local inventory = gm.variable_instance_get(player.value.id, "inventory_item_order")
@@ -205,16 +227,18 @@ function __initialize()
     skillPickup.obj_sprite = 114
     skillPickup:add_callback("onActivate", function(Interactable, Player)
         if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
-            local skill = gm.variable_instance_get(Player.value.id, "skills")[Interactable.value.slot_index + 1].active_skill
+            local skill = gm.variable_instance_get(Player.value.id, "skills")[Interactable.value.slot_index + 1]
+                              .active_skill
             if skill.skill_id ~= 0 then
                 if not skill_check(skill.skill_id) then
                     return
                 end
-                drop_skill(Player.value, skill.slot_index, {skill.skill_id, skill.sprite, string.sub(skill.name,1,-6), skill.subimage})
+                drop_skill(Player.value, skill.slot_index,
+                    {skill.skill_id, skill.sprite, string.sub(skill.name, 1, -6), skill.subimage})
             end
             activate_skill(Player, Interactable)
         else
-            log.error("Can't get skillPickup's skill_id or slot_index") --sometimes happened. maybe is my terrible network code.
+            log.error("Can't get skillPickup's skill_id or slot_index") -- sometimes happened. maybe is my terrible network code.
         end
     end)
 end
@@ -222,8 +246,9 @@ local function find_skill_with_localized(name, player)
     local skills = gm.variable_instance_get(player.value.id, "skills")
     for k, v in pairs(skills) do
         if (name == gm.ds_map_find_value(lang_map, skills_cache[v.active_skill.skill_id + 1][3])) then
-            return v.active_skill.skill_id, v.active_skill.slot_index, skills_cache[v.active_skill.skill_id + 1][5],skills_cache[v.active_skill.skill_id + 1][6],
-                string.sub(skills_cache[v.active_skill.skill_id + 1][3],1,-6)
+            return v.active_skill.skill_id, v.active_skill.slot_index, skills_cache[v.active_skill.skill_id + 1][5],
+                skills_cache[v.active_skill.skill_id + 1][6],
+                string.sub(skills_cache[v.active_skill.skill_id + 1][3], 1, -6)
         end
     end
 end
@@ -239,10 +264,12 @@ gui.add_always_draw_imgui(function()
                             drop_item(player.value, item_id, item_object_id)
                         end
                     else
-                        local skill_id, slot_index, skill_sprite,skill_subimage,skill_translation_key = find_skill_with_localized(tooltip, player)
+                        local skill_id, slot_index, skill_sprite, skill_subimage, skill_translation_key =
+                            find_skill_with_localized(tooltip, player)
                         if skill_id ~= nil and slot_index ~= nil and skill_id ~= 0 and skill_check(skill_id) then
                             if drop_skill ~= nil then
-                                drop_skill(player.value, slot_index, {skill_id, skill_sprite, skill_translation_key,skill_subimage})
+                                drop_skill(player.value, slot_index,
+                                    {skill_id, skill_sprite, skill_translation_key, skill_subimage})
                             end
                         end
                     end
