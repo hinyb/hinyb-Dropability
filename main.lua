@@ -32,6 +32,10 @@ local drop_skill
 local activate_skill
 local skills_cache
 local bugged_skills = {} -- Thanks for https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer
+
+local drifter_scarp_bar_list = {}
+local miner_heat_bar_list = {}
+
 local function skill_check(skill_id)
     for _, v in pairs(bugged_skills) do
         if skill_id == v then
@@ -148,6 +152,8 @@ gm.post_script_hook(gm.constants.item_give, function(self, other, result, args)
 end)
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drop_item_id_list = {}
+    drifter_scarp_bar_list = {}
+    miner_heat_bar_list = {}
 end)
 gm.post_script_hook(gm.constants.instance_create, function(self, other, result, args)
     if result.value.__object_index == skillPickup.value then
@@ -161,14 +167,33 @@ local miner_heat_bar_flag = false
 gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
     if not miner_heat_bar_flag then
         if result.value == -4 or result.value == 0 then
-            miner_heat_bar_flag = true
-            gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
-            result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self)
+            if Instance.exists(self) and self.dead ~= 1 then
+                miner_heat_bar_flag = true
+                gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
+                result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self)
+                miner_heat_bar_flag = false
+                table.insert(miner_heat_bar_list, self.m_id)
+            end
         end
     end
 end)
 gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
+    Flog_hook(self, other, result, args)
     miner_heat_bar_flag = true
+end)
+local cache_class = 0.0
+gm.post_code_execute("gml_Object_oP_Step_2", function(self, other)
+    for _, v in pairs(miner_heat_bar_list) do
+        if self.m_id == v and self.activity_type ~= 4.0 and self.dead == false then
+            cache_class = self.class
+            self.class = 6.0
+            gm.call("gml_Script__survivor_miner_update_sprites", self, self, self.id)
+            gm.call(
+                "anon_anon__3473862_gml_GlobalScript_scr_ror_init_survivor_miner_5631866_anon__3473862_gml_GlobalScript_scr_ror_init_survivor_miner",
+                self, self, self.id)
+            self.class = cache_class
+        end
+    end
 end)
 local drifter_scrap_bar_flag = false
 gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self, other, result, args)
@@ -181,14 +206,36 @@ gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self
     end
 end)
 gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
+    log.info("try to create scrap bar")
+    if self.class ~= 14 then
+        log.info("add scrap list")
+        table.insert(drifter_scarp_bar_list, self.m_id)
+    end
     drifter_scrap_bar_flag = true
 end)
-local function set_default_value(target, member, value)
+local drifter_flag = false
+local cache_drifter = 0
+gm.pre_code_execute("gml_Object_oDrifterRec_Collision_oP", function(self, other)
+    for _, v in pairs(drifter_scarp_bar_list) do
+        if other.m_id == v then
+            drifter_flag = true
+            cache_drifter = v
+            other.class = 14
+        end
+    end
+end)
+gm.post_code_execute("gml_Object_oDrifterRec_Collision_oP", function(self, other)
+    if drifter_flag then
+        drifter_flag = false
+        other.class = cache_drifter
+    end
+end)
+local function defalut_nil(target, member, value)
     if target[member] == nil then
-        target[member] = false or value
+        target[member] = value or false
     end
 end
-local function set_default_value_sprite(target, member, num)
+local function nilcreate(target, member, num)
     if target[member .. "_half"] == nil or gm.array_length(target[member .. "_half"]) == 0 then
         target[member .. "_half"] = gm.array_create(num, 0.0)
         gm.array_set(target[member .. "_half"], 0, target[member])
@@ -198,19 +245,18 @@ end
 gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     drifter_scrap_bar_flag = false
     miner_heat_bar_flag = false
-    set_default_value(self, "charged")
-    set_default_value(self, "_miner_charged_elder_kill_count")
-    set_default_value(self, "sniper_bonus")
-    set_default_value(self, "dash_timer")
-    set_default_value(self, "ydisp")
-    set_default_value(self, "above_50_health", true)
-
-    self.sprite_walk_last = self.sprite_walk -- I don't know what this is for, but it may cause bug when replacing skills. So i change its value to sprite_walk. 
-    set_default_value_sprite(self, "sprite_idle", 3)
-    set_default_value_sprite(self, "sprite_fall", 3)
-    set_default_value_sprite(self, "sprite_jump_peak", 3)
-    set_default_value_sprite(self, "sprite_jump", 3)
-    set_default_value_sprite(self, "sprite_walk", 4)
+    defalut_nil(self, "charged")
+    defalut_nil(self, "_miner_charged_elder_kill_count")
+    defalut_nil(self, "sniper_bonus")
+    defalut_nil(self, "dash_timer")
+    defalut_nil(self, "ydisp")
+    defalut_nil(self, "above_50_health", true)
+    self.sprite_walk_last = self.sprite_walk
+    nilcreate(self, "sprite_idle", 3)
+    nilcreate(self, "sprite_fall", 3)
+    nilcreate(self, "sprite_jump_peak", 3)
+    nilcreate(self, "sprite_jump", 3)
+    nilcreate(self, "sprite_walk", 4)
 end)
 local function find_item_with_localized(name, player)
     local inventory = gm.variable_instance_get(player.value.id, "inventory_item_order")

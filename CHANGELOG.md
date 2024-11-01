@@ -1,3 +1,6 @@
+v2.0.4
+* Fix miner's heat bar and drifter's scrap bar, now they should work properly.
+
 v2.0.3
 * Fix bug that causes crash. But still have some compatibility issues.
 
