@@ -1,3 +1,6 @@
+v2.0.5
+* Fix the incorrect way of calling anonymous funciton
+
 v2.0.4
 * Fix miner's heat bar and drifter's scrap bar, now they should work properly.
 

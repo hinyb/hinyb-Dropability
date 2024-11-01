@@ -188,9 +188,7 @@ gm.post_code_execute("gml_Object_oP_Step_2", function(self, other)
             cache_class = self.class
             self.class = 6.0
             gm.call("gml_Script__survivor_miner_update_sprites", self, self, self.id)
-            gm.call(
-                "anon_anon__3473862_gml_GlobalScript_scr_ror_init_survivor_miner_5631866_anon__3473862_gml_GlobalScript_scr_ror_init_survivor_miner",
-                self, self, self.id)
+            gm.call(gm.constants_type_sorted["gml_script"][102162], self, self, self.id)
             self.class = cache_class
         end
     end
