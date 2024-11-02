@@ -1,3 +1,6 @@
+v2.0.6
+* Delete the test funciton I forgot to remove.
+
 v2.0.5
 * Fix the incorrect way of calling anonymous funciton
 

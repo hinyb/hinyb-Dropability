@@ -170,7 +170,7 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
             if Instance.exists(self) and self.dead ~= 1 then
                 miner_heat_bar_flag = true
                 gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
-                result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self)
+                result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self.id)
                 miner_heat_bar_flag = false
                 table.insert(miner_heat_bar_list, self.m_id)
             end
@@ -178,7 +178,6 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
     end
 end)
 gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
-    Flog_hook(self, other, result, args)
     miner_heat_bar_flag = true
 end)
 local cache_class = 0.0
@@ -199,14 +198,12 @@ gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self
         if result.value == -4 or result.value == 0 then
             drifter_scrap_bar_flag = true
             gm.call("gml_Script__survivor_drifter_create_scrap_bar", self, other)
-            result = gm.call("gml_Script__survivor_drifter_find_scrap_bar", self, other, self)
+            result = gm.call("gml_Script__survivor_drifter_find_scrap_bar", self, other, self.id)
         end
     end
 end)
 gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
-    log.info("try to create scrap bar")
     if self.class ~= 14 then
-        log.info("add scrap list")
         table.insert(drifter_scarp_bar_list, self.m_id)
     end
     drifter_scrap_bar_flag = true
@@ -249,7 +246,7 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     defalut_nil(self, "dash_timer")
     defalut_nil(self, "ydisp")
     defalut_nil(self, "above_50_health", true)
-    self.sprite_walk_last = self.sprite_walk
+    self.sprite_walk_last = self.sprite_walk -- I don't know what this is for, but it may cause bug when replacing skills. So i change its value to sprite_walk. 
     nilcreate(self, "sprite_idle", 3)
     nilcreate(self, "sprite_fall", 3)
     nilcreate(self, "sprite_jump_peak", 3)
