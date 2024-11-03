@@ -1,14 +1,4 @@
-mods.on_all_mods_loaded(function()
-    for _, m in pairs(mods) do
-        if type(m) == "table" and m.RoRR_Modding_Toolkit then
-            for _, c in ipairs(m.Classes) do
-                if m[c] then
-                    _G[c] = m[c]
-                end
-            end
-        end
-    end
-end)
+mods["RoRRModdingToolkit-RoRR_Modding_Toolkit"].auto()
 
 mods.on_all_mods_loaded(function()
     for k, v in pairs(mods) do
@@ -29,60 +19,117 @@ local cached_dup_num
 local pickup_is_dropped = false
 
 local drop_skill
-local activate_skill
 local skills_cache
-local bugged_skills = {} -- Thanks for https://github.com/SmoothSpatula/SmoothSpatula-RoRRRandomizer
 
 local drifter_scarp_bar_list = {}
 local miner_heat_bar_list = {}
 
-local function skill_check(skill_id)
-    for _, v in pairs(bugged_skills) do
-        if skill_id == v then
-            return false
-        end
-    end
-    return true
-end
-local function get_instance_with_m_id(id, m_id)
-    for k, v in pairs(Instance.find_all(id)) do
-        if v.value.m_id == m_id then
-            return v
-        end
-    end
-end
-local need_to_update = {}
-local function setupSkill(target, params)
-    gm._mod_instance_set_sprite(target, params.skill_sprite)
-    target.image_index = params.skill_subimage
-    target.translation_key = params.skill_translation_key
-    target.skill_id = params.skill_id
-    target.slot_index = params.slot_index
+local function setupSkill(target, skill_params)
+    gm._mod_instance_set_sprite(target, skill_params.skill_sprite)
+    target.image_index = skill_params.skill_subimage
+    target.translation_key = skill_params.skill_translation_key
+    target.skill_id = skill_params.skill_id
+    target.slot_index = skill_params.slot_index
     target.text = gm.ds_map_find_value(lang_map, target.translation_key .. ".name")
 end
-local function setupUpdateSkill(slot_index, skill_params)
-    need_to_update.slot_index = slot_index
-    need_to_update.skill_id = skill_params[1]
-    need_to_update.skill_sprite = skill_params[2]
-    need_to_update.skill_translation_key = skill_params[3]
-    need_to_update.skill_subimage = skill_params[4]
-end
-local function initialize(host)
-    local activate_skill_handler = function(player_m_id, inst_object_index, inst_m_id)
-        local Player = get_instance_with_m_id(gm.constants.oP, player_m_id)
-        local Interactable = get_instance_with_m_id(inst_object_index, inst_m_id)
-        gm.actor_skill_set(Player.value, Interactable.value.slot_index, Interactable.value.skill_id)
-        gm.instance_destroy(Interactable.value.id)
-    end
-    Net.register("activate_skill_handler", activate_skill_handler)
-    activate_skill = function(player, skillPickup)
-        gm.actor_skill_set(player.value, skillPickup.value.slot_index, skillPickup.value.skill_id)
-        gm.instance_destroy(skillPickup.value.id)
-        Net.send("activate_skill_handler", Net.TARGET.all, nil, player.m_id, skillPickup.object_index, skillPickup.m_id)
-    end
+local drop_item_send, drop_skill_send, activate_skill_send
+local function init()
+    skillPickup = Interactable.new("hinyb", "skillPickup")
+    skillPickup.obj_sprite = 114
+    skillPickup:add_callback("onActivate", function(Interactable, Player)
+        if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
+            local skill = gm.variable_instance_get(Player.value.id, "skills")[Interactable.value.slot_index + 1]
+                              .active_skill
+            if skill.skill_id ~= 0 then
+                drop_skill(Player.value, {
+                    slot_index = skill.slot_index,
+                    skill_id = skill.skill_id,
+                    skill_sprite = skill.sprite,
+                    skill_translation_key = string.sub(skill.name, 1, -6),
+                    skill_subimage = skill.subimage
+                })
+            end
+            activate_skill_send(Player.value, Interactable.value)
+        end
+    end)
+
     item_cache = gm.variable_global_get("class_item")
-    lang_map = gm.variable_global_get("_language_map")
     skills_cache = gm.variable_global_get("class_skill")
+    local drop_item_packet = Packet.new()
+    drop_item_packet:onReceived(function(message, player)
+        local item_id = message:read_int()
+        local item_object_id = message:read_int()
+        drop_item(player.value, item_id, item_object_id)
+    end)
+    drop_item_send = function(item_id, item_object_id)
+        local sync_message = drop_item_packet:message_begin()
+        sync_message:write_int(item_id)
+        sync_message:write_int(item_object_id)
+        sync_message:send_to_host()
+    end
+    local drop_skill_packet = Packet.new()
+    drop_skill_packet:onReceived(function(message, player)
+        local slot_index = message:read_int()
+        local skill_id = message:read_int()
+        local skill_sprite = message:read_int()
+        local skill_translation_key = message:read_string()
+        local skill_subimage = message:read_int()
+        local skill_params = {
+            slot_index = slot_index,
+            skill_id = skill_id,
+            skill_sprite = skill_sprite,
+            skill_translation_key = skill_translation_key,
+            skill_subimage = skill_subimage
+        }
+        if Net.get_type() == Net.TYPE.host then
+            drop_skill(player.value, skill_params)
+        else
+            local skill = message:read_instance().value
+            setupSkill(skill, skill_params)
+        end
+    end)
+    drop_skill_send = function(skill_params, skill)
+        local sync_message = drop_skill_packet:message_begin()
+        sync_message:write_int(skill_params.slot_index)
+        sync_message:write_int(skill_params.skill_id)
+        sync_message:write_int(skill_params.skill_sprite)
+        sync_message:write_string(skill_params.skill_translation_key)
+        sync_message:write_int(skill_params.skill_subimage)
+        if skill ~= nil then
+            sync_message:write_instance(skill)
+            sync_message:send_to_all()
+        else
+            sync_message:send_to_host()
+        end
+    end
+    local active_skill_packet = Packet.new()
+    active_skill_packet:onReceived(function(message, player)
+        local Player = message:read_instance().value
+        local Interactable = message:read_instance().value
+        if Net.get_type() == Net.TYPE.host then
+            local sync_message = active_skill_packet:message_begin()
+            sync_message:write_instance(Player)
+            sync_message:write_instance(Interactable)
+            sync_message:send_exclude(player)
+        end
+        gm.actor_skill_set(Player, Interactable.slot_index, Interactable.skill_id)
+        gm.instance_destroy(Interactable.id)
+    end)
+    activate_skill_send = function(Player, Interactable)
+        local sync_message = active_skill_packet:message_begin()
+        sync_message:write_instance(Player)
+        sync_message:write_instance(Interactable)
+        if Net.get_type() == Net.TYPE.host then
+            sync_message:send_to_all()
+        else
+            sync_message:send_to_host()
+        end
+        gm.actor_skill_set(Player, Interactable.slot_index, Interactable.skill_id)
+        gm.instance_destroy(Interactable.id)
+    end
+end
+local function update_multiplayer(host)
+    lang_map = gm.variable_global_get("_language_map")
     if host then
         drop_item = function(player, item_id, item_object_id)
             if gm.item_count(player, item_id, 0) >= 1 then
@@ -91,43 +138,28 @@ local function initialize(host)
                 table.insert(drop_item_id_list, item.id)
             end
         end
-        local drop_item_handler = function(player_m_id, item_id, item_object_id)
-            drop_item(get_instance_with_m_id(gm.constants.oP, player_m_id).value, item_id, item_object_id)
-        end
-        Net.register("drop_item_handler", drop_item_handler)
 
-        drop_skill = function(player, slot_index, skill_params)
-            Net.send("drop_skill_client_handler", Net.TARGET.all, nil, slot_index, table.unpack(skill_params))
-            setupUpdateSkill(slot_index, skill_params)
-            gm.instance_create(player.x - 10, player.y - 20, skillPickup.value)
-            gm.actor_skill_set(player, slot_index, 0) -- DummySkill
+        drop_skill = function(player, skill_params)
+            local skill = gm.instance_create(player.x - 10, player.y - 20, skillPickup.value)
+            gm.call("gml_Script_interactable_sync", skill, skill)
+            setupSkill(skill, skill_params)
+            gm.actor_skill_set(player, skill_params.slot_index, 0) -- DummySkill
+            drop_skill_send(skill_params, skill)
         end
-        local drop_skill_host_handler = function(player_m_id, slot_index, skill_params)
-            drop_skill(get_instance_with_m_id(gm.constants.oP, player_m_id).value, slot_index, skill_params)
-        end
-        Net.register("drop_skill_host_handler", drop_skill_host_handler)
     else
-        drop_item = function(player, item_id, item_object_id)
-            Net.send("drop_item_handler", 1, Player.get_host().value.user_name, player.m_id, item_id, item_object_id)
-        end
+        drop_item = drop_item_send
 
-        drop_skill = function(player, slot_index, skill_params)
-            gm.actor_skill_set(player, slot_index, 0)
-            Net.send("drop_skill_host_handler", 1, Player.get_host().value.user_name, player.m_id, slot_index,
-                skill_params)
+        drop_skill = function(player, skill_params)
+            gm.actor_skill_set(player, skill_params.slot_index, 0)
+            drop_skill_send(skill_params)
         end
-        local drop_skill_client_handler = function(slot_index, ...)
-            setupUpdateSkill(slot_index, {...})
-        end
-        Net.register("drop_skill_client_handler", drop_skill_client_handler)
     end
 end
-
 gm.post_script_hook(gm.constants.ui_hover_tooltip, function(self, other, result, args)
     tooltip = args[3].value
 end)
 gm.post_script_hook(gm.constants.update_multiplayer_globals, function(self, other, result, args)
-    initialize(args[2].value)
+    update_multiplayer(args[2].value)
 end)
 gm.pre_script_hook(gm.constants.item_give_internal, function(self, other, result, args)
     if (cached_dup_num ~= nil) then
@@ -155,14 +187,6 @@ gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drifter_scarp_bar_list = {}
     miner_heat_bar_list = {}
 end)
-gm.post_script_hook(gm.constants.instance_create, function(self, other, result, args)
-    if result.value.__object_index == skillPickup.value then
-        if need_to_update.slot_index ~= nil then
-            setupSkill(result.value, need_to_update)
-            need_to_update = {}
-        end
-    end
-end)
 local miner_heat_bar_flag = false
 gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
     if not miner_heat_bar_flag then
@@ -172,24 +196,23 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
                 gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
                 result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self.id)
                 miner_heat_bar_flag = false
-                table.insert(miner_heat_bar_list, self.m_id)
             end
         end
     end
 end)
 gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
+    if self.class ~= 6 then
+        miner_heat_bar_list[self.m_id] = true
+    end
     miner_heat_bar_flag = true
 end)
-local cache_class = 0.0
 gm.post_code_execute("gml_Object_oP_Step_2", function(self, other)
-    for _, v in pairs(miner_heat_bar_list) do
-        if self.m_id == v and self.activity_type ~= 4.0 and self.dead == false then
-            cache_class = self.class
-            self.class = 6.0
-            gm.call("gml_Script__survivor_miner_update_sprites", self, self, self.id)
-            gm.call(gm.constants_type_sorted["gml_script"][102162], self, self, self.id)
-            self.class = cache_class
-        end
+    if miner_heat_bar_list[self.m_id] and self.activity_type ~= 4.0 then
+        local cache_class = self.class
+        self.class = 6.0
+        gm.call("gml_Script__survivor_miner_update_sprites", self, self, self.id)
+        gm.call(gm.constants_type_sorted["gml_script"][102162], self, self, self.id)
+        self.class = cache_class
     end
 end)
 local drifter_scrap_bar_flag = false
@@ -204,19 +227,17 @@ gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self
 end)
 gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
     if self.class ~= 14 then
-        table.insert(drifter_scarp_bar_list, self.m_id)
+        drifter_scarp_bar_list[self.m_id] = true
     end
     drifter_scrap_bar_flag = true
 end)
 local drifter_flag = false
 local cache_drifter = 0
 gm.pre_code_execute("gml_Object_oDrifterRec_Collision_oP", function(self, other)
-    for _, v in pairs(drifter_scarp_bar_list) do
-        if other.m_id == v then
-            drifter_flag = true
-            cache_drifter = v
-            other.class = 14
-        end
+    if drifter_scarp_bar_list[other.m_id] then
+        drifter_flag = true
+        cache_drifter = other.class
+        other.class = 14
     end
 end)
 gm.post_code_execute("gml_Object_oDrifterRec_Collision_oP", function(self, other)
@@ -245,7 +266,12 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     defalut_nil(self, "sniper_bonus")
     defalut_nil(self, "dash_timer")
     defalut_nil(self, "ydisp")
+    defalut_nil(self, "dive")
+    defalut_nil(self, "_hand_sawmerang_kill_count")
+    defalut_nil(self, "ydisp")
+    defalut_nil(self, "dash_again")
     defalut_nil(self, "above_50_health", true)
+    defalut_nil(self, "above_60_health", true)
     self.sprite_walk_last = self.sprite_walk -- I don't know what this is for, but it may cause bug when replacing skills. So i change its value to sprite_walk. 
     nilcreate(self, "sprite_idle", 3)
     nilcreate(self, "sprite_fall", 3)
@@ -254,7 +280,7 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     nilcreate(self, "sprite_walk", 4)
 end)
 local function find_item_with_localized(name, player)
-    local inventory = gm.variable_instance_get(player.value.id, "inventory_item_order")
+    local inventory = gm.variable_instance_get(player.id, "inventory_item_order")
     local size = gm.array_length(inventory)
     for i = 0, size - 1 do
         local val = gm.array_get(inventory, i)
@@ -263,28 +289,8 @@ local function find_item_with_localized(name, player)
         end
     end
 end
-function __initialize()
-    skillPickup = Interactable.new("hinyb", "skillPickup")
-    skillPickup.obj_sprite = 114
-    skillPickup:add_callback("onActivate", function(Interactable, Player)
-        if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
-            local skill = gm.variable_instance_get(Player.value.id, "skills")[Interactable.value.slot_index + 1]
-                              .active_skill
-            if skill.skill_id ~= 0 then
-                if not skill_check(skill.skill_id) then
-                    return
-                end
-                drop_skill(Player.value, skill.slot_index,
-                    {skill.skill_id, skill.sprite, string.sub(skill.name, 1, -6), skill.subimage})
-            end
-            activate_skill(Player, Interactable)
-        else
-            log.error("Can't get skillPickup's skill_id or slot_index") -- sometimes happened. maybe is my terrible network code.
-        end
-    end)
-end
 local function find_skill_with_localized(name, player)
-    local skills = gm.variable_instance_get(player.value.id, "skills")
+    local skills = gm.variable_instance_get(player.id, "skills")
     for k, v in pairs(skills) do
         if (name == gm.ds_map_find_value(lang_map, skills_cache[v.active_skill.skill_id + 1][3])) then
             return v.active_skill.skill_id, v.active_skill.slot_index, skills_cache[v.active_skill.skill_id + 1][5],
@@ -293,24 +299,54 @@ local function find_skill_with_localized(name, player)
         end
     end
 end
+local handy_skill_list = {
+    [39] = true,
+    [43] = true,
+    [44] = true,
+    [45] = true
+} -- 44 is like some unused skill
+local function check_handy(player)
+    local skills = gm.variable_instance_get(player.id, "skills")
+    for i = 1, #skills do
+        if handy_skill_list[skills[i].active_skill.skill_id] then
+            return true
+        end
+    end
+    return false
+end
+local ptr = memory.scan_pattern("8B 15 ? ? ? ? 48 8B 8D ? ? ? ? E8 ? ? ? ? BA 06 00 00 00 48 8B C8 E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? C7 44 24 ? ? ? ? ? 8B 4C 24"):add(272)
+gm.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
+    if self.object_index == gm.constants.oP then
+        if check_handy(self) then
+            ptr:add(1):patch_byte(self.class):apply()
+        else
+            ptr:add(1):patch_byte(4):apply() -- terrible solution, need to find a better way
+        end
+    end
+end)
 gui.add_always_draw_imgui(function()
     if ImGui.IsKeyPressed(params['drop_item_key'], false) then
-        local player = Player.get_client()
+        local player = Player.get_client().value
         if Instance.exists(player) then
             if gm.variable_global_get("_ui_hover_tooltip_state") ~= nil then
                 if tooltip ~= nil then
                     local item_object_id, item_id = find_item_with_localized(tooltip, player)
                     if item_object_id ~= nil and item_id ~= nil then
                         if drop_item ~= nil then
-                            drop_item(player.value, item_id, item_object_id)
+                            drop_item(player, item_id, item_object_id)
                         end
                     else
                         local skill_id, slot_index, skill_sprite, skill_subimage, skill_translation_key =
                             find_skill_with_localized(tooltip, player)
-                        if skill_id ~= nil and slot_index ~= nil and skill_id ~= 0 and skill_check(skill_id) then
+                        if skill_id ~= nil and slot_index ~= nil and skill_id ~= 0 then
                             if drop_skill ~= nil then
-                                drop_skill(player.value, slot_index,
-                                    {skill_id, skill_sprite, skill_translation_key, skill_subimage})
+                                drop_skill(player, {
+                                    slot_index = slot_index,
+                                    skill_id = skill_id,
+                                    skill_sprite = skill_sprite,
+                                    skill_translation_key = skill_translation_key,
+                                    skill_subimage = skill_subimage
+                                })
                             end
                         end
                     end
@@ -327,3 +363,5 @@ gui.add_to_menu_bar(function()
         Toml.save_cfg(_ENV["!guid"], params)
     end
 end)
+
+Initialize(init)

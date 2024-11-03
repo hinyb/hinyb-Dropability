@@ -1,5 +1,7 @@
 v2.0.6
 * Delete the test funciton I forgot to remove.
+* Fix HANDY's compatibility issues with a terrible way.
+* Update to new network api.
 
 v2.0.5
 * Fix the incorrect way of calling anonymous funciton
