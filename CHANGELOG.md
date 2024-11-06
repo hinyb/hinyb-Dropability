@@ -1,3 +1,7 @@
+v2.0.7
+* Code cleanup.
+* Try using envy to manage the environment.
+
 v2.0.6
 * Delete the test funciton I forgot to remove.
 * Fix HANDY's compatibility issues with a terrible way.

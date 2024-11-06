@@ -1,11 +1,12 @@
 {
 	"name": "Dropability",
-	"version_number": "2.0.6",
+	"version_number": "2.0.7",
 	"website_url": "https://github.com/hinyb/hinyb-Dropability",
 	"description": "Drop it!",
 	"dependencies": [
 		"ReturnOfModding-ReturnOfModding-1.0.48",
 		"RoRRModdingToolkit-RoRR_Modding_Toolkit-1.1.25",
-		"SmoothSpatula-TomlHelper-1.0.1"
+		"SmoothSpatula-TomlHelper-1.0.1",
+		"MGReturns-ENVY-1.1.1"
 	]
 }

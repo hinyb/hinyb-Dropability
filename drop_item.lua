@@ -17,8 +17,9 @@ local function init()
         sync_message:send_to_host()
     end
 end
-local function update_multiplayer(ishost)
-    if ishost then
+
+gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+    if Utils.get_net_type() == Net.TYPE.host or Utils.get_net_type() == Net.TYPE.single then
         drop_item = function(player, item_id, item_object_id)
             if gm.item_count(player, item_id, 0) >= 1 then
                 gm.item_take(player, item_id, 1, 0)
@@ -29,10 +30,8 @@ local function update_multiplayer(ishost)
     else
         drop_item = drop_item_send
     end
-end
-gm.post_script_hook(gm.constants.update_multiplayer_globals, function(self, other, result, args)
-    update_multiplayer(args[2].value)
 end)
+
 local cached_dup_num
 local pickup_is_dropped = false
 gm.pre_script_hook(gm.constants.item_give_internal, function(self, other, result, args)
