@@ -1,3 +1,6 @@
+v2.0.8
+* Fix memory leak. But still have more places for optimization.
+
 v2.0.7
 * Code cleanup.
 * Try using envy to manage the environment.

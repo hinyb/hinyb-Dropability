@@ -118,7 +118,7 @@ gm.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
         if check_handy(self) then
             ptr:add(1):patch_byte(self.class):apply()
         else
-            ptr:add(1):patch_byte(4):apply() -- terrible solution, need to find a better way
+            ptr:add(1):patch_byte(4):apply() -- terrible solution, need to spend more time to fix it.
         end
     end
 end)

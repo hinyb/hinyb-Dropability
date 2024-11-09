@@ -61,7 +61,6 @@ gui.add_always_draw_imgui(function()
         end
     end
 end)
-
 gui.add_to_menu_bar(function()
     local isChanged, keybind_value = ImGui.Hotkey("Drop Item Key", params['drop_item_key'])
     if isChanged then

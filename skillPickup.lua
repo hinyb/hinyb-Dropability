@@ -33,7 +33,7 @@ local function init()
     skillPickup.obj_sprite = 114
     skillPickup:add_callback("onActivate", function(Interactable, Player)
         if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
-            local skill = gm.variable_instance_get(Player.value.id, "skills")[Interactable.value.slot_index + 1]
+            local skill = gm.array_get(gm.variable_instance_get(Player.value.id, "skills"),Interactable.value.slot_index + 1)
                               .active_skill
             if skill.skill_id ~= 0 then
                 gm.actor_skill_set(Player.value, skill.slot_index, 0)
