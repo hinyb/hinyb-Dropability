@@ -13,7 +13,7 @@ mods.on_all_mods_loaded(function()
 end)
 
 require("Utils")
-require("skillPickup")
+require("SkillPickup")
 require("drop_item")
 require("compat_patch")
 
@@ -24,9 +24,7 @@ public_things = {
         return drop_item(player, item_id, item_object_id)
     end,
     ["Utils"] = Utils,
-    ["skill_create"] = function(x, y, skill_params)
-        return skill_create(x, y, skill_params)
-    end
+    ["SkillPickup"] = SkillPickup
 } -- Maybe using a wrong way
 require("./envy_setup")
 
@@ -50,10 +48,8 @@ gui.add_always_draw_imgui(function()
                     else
                         local skill = Utils.find_skill_with_localized(tooltip, player)
                         if skill.skill_id ~= nil and skill.slot_index ~= nil and skill.skill_id ~= 0 then
-                            if skill_create ~= nil then
-                                gm.actor_skill_set(player, skill.slot_index, 0)
-                                skill_create(player.x, player.y, skill)
-                            end
+                            gm.actor_skill_set(player, skill.slot_index, 0)
+                            SkillPickup.skill_create(player.x, player.y, skill)
                         end
                     end
                 end

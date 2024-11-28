@@ -1,3 +1,8 @@
+v3.0.0
+* Improve the skillPickup, now It can have more modifiers.
+* Fix the compatibility issues with the other mods.
+* Improve the fixing way of HANDY's compatibility issues.
+
 v2.0.8
 * Fix memory leak. But still have more places for optimization.
 

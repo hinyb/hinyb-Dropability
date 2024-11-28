@@ -98,27 +98,23 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     nilcreate(self, "sprite_walk", 4)
 end)
 local handy_skill_list = {
-    [39] = true,
-    [43] = true,
-    [44] = true,
-    [45] = true
+    [39] = 0,
+    [43] = 1,
+    [44] = 2,
+    [45] = 3
 } -- 44 is like some unused skill
-local function check_handy(player)
-    local skills = gm.variable_instance_get(player.id, "skills")
-    for i = 1, #skills do
-        if handy_skill_list[skills[i].active_skill.skill_id] then
-            return true
+-- still have some issues
+memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0, {},
+    gm.get_script_function_address(gm.constants.actor_death):add(38162), function(args)
+        local skills = args[2].skills
+        for i = 0, #skills - 1 do
+            local skill_id = gm.array_get(skills, i).active_skill.skill_id
+            if handy_skill_list[skill_id] then
+                local drone = gm.instance_create(args[2].x, args[2].y, 685)
+                drone.parent = args[2].id
+                drone.team = args[2].team
+                drone.set_type(drone, args[2], handy_skill_list[skill_id])
+            end
         end
-    end
-    return false
-end
-local ptr = memory.scan_pattern("8B 15 ? ? ? ? 48 8B 8D ? ? ? ? E8 ? ? ? ? BA 06 00 00 00 48 8B C8 E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? C7 44 24 ? ? ? ? ? 8B 4C 24"):add(272)
-gm.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
-    if self.object_index == gm.constants.oP then
-        if check_handy(self) then
-            ptr:add(1):patch_byte(self.class):apply()
-        else
-            ptr:add(1):patch_byte(4):apply() -- terrible solution, need to spend more time to fix it.
-        end
-    end
-end)
+        args[1]:set(-1) -- to override original, hope this may not break something
+    end)
