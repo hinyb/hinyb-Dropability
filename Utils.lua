@@ -1,8 +1,8 @@
 local lang_map = gm.variable_global_get("_language_map")
-local skill_blacklist = {
-    [0] = true,
-    [204] = true
-} -- 204 umbraMissile
+local random_skill_blacklist = {
+    [0] = true,     -- no skill
+    [204] = true    -- umbraMissile
+}
 local skill_id_to_slot = {}
 local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
@@ -11,8 +11,20 @@ gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     lang_map = gm.variable_global_get("_language_map")
     net_type = Net.get_type()
     ResourceManager = gm.variable_global_get("ResourceManager_object")
+    Utils.empty_skill_num = 4
 end)
 Utils = {}
+Utils.find_instance_with_m_id = function(object_index, m_id)
+    local insts = Instance.find_all(object_index)
+    for i = 1, #insts do
+        local inst = insts[i].value
+        if inst.m_id == m_id then
+            return inst
+        end
+    end
+    log.error("Can't find instance", object_index, "with m_id", m_id)
+end
+Utils.empty_skill_num = 4
 Utils.check_asset_with_name = function(namespace, identifier)
     local lookup = ResourceManager.__namespacedAssetLookup
     if gm.variable_instance_exists(lookup, namespace) and gm.variable_instance_exists(lookup[namespace], identifier) then
@@ -32,8 +44,8 @@ Utils.find_skill_id_with_name = function(name)
         end
     end
 end
-Utils.check_skill = function(skill_id)
-    return not skill_blacklist[skill_id]
+Utils.check_random_skill = function(skill_id)
+    return not random_skill_blacklist[skill_id]
 end
 Utils.LCG_random = function(seed)
     local state = seed or os.time()
@@ -49,7 +61,7 @@ Utils.random_skill_id = function(random_seed)
     return function()
         while true do
             local rnd_skill_id = random(1, Class.SKILL:size()) - 1
-            if Utils.check_skill(rnd_skill_id) then
+            if Utils.check_random_skill(rnd_skill_id) then
                 return rnd_skill_id
             end
         end
@@ -101,8 +113,8 @@ Utils.find_item_with_localized = function(name, player)
         end
     end
 end
-Utils.get_skill_diff_check_table = function ()
-    return{
+Utils.get_skill_diff_check_table = function()
+    return {
         ["name"] = 2,
         ["description"] = 3,
         ["sprite"] = 4,
@@ -124,7 +136,6 @@ Utils.get_active_skill_diff = function(skill)
     end
     for k, v in pairs(diff_check_table) do
         if skill[k] ~= default_skill:get(v) then
-            log.info("diff ",k,skill[k])
             result[k] = skill[k]
         end
     end
@@ -141,7 +152,7 @@ Utils.find_skill_with_localized = function(name, player)
     for i = 0, skills:size() - 1 do
         local skill = skills:get(i).active_skill
         if (name == gm.ds_map_find_value(lang_map, Class.SKILL:get(skill.skill_id):get(2))) then
-            return Utils.get_active_skill_diff(skill)
+            return skill
         end
     end
 end
@@ -205,7 +216,7 @@ Utils.create_array_from_table = function(table)
 end
 Utils.create_table_from_array = function(arr)
     local res = {}
-    for i = 0, gm.array_length(arr) do
+    for i = 0, gm.array_length(arr) - 1 do
         table.insert(res, gm.array_get(arr, i))
     end
     return res
@@ -232,6 +243,20 @@ Utils.set_and_sync_inst_from_table = function(inst, table)
         end
     end
 end
+Utils.parse_string_to_value = function(str)
+    local ok, value = tobool(str)
+    if ok then
+        return value
+    end
+    return tonumber(str) or str
+end
+Utils.table_get_length = function(table)
+    local result = 0
+    for k,v in pairs(table) do
+        result = result + 1
+    end
+    return result
+end
 local function init()
     local skill_t = {
         [6] = 0,
@@ -254,13 +279,6 @@ local function init()
         local inst = message:read_instance().value
         local num = message:read_int()
         local function parse_string(sync_message)
-            local function parse_string_to_value(str)
-                local ok, value = tobool(str)
-                if ok then
-                    return value
-                end
-                return tonumber(str) or str
-            end
             for _ = 1, num do
                 local mem = message:read_string()
                 if mem == nil then
@@ -272,7 +290,7 @@ local function init()
                     local val_table = Utils.simple_string_to_table(val)
                     inst[mem_] = Utils.create_array_from_table(val_table)
                 else
-                    inst[mem] = parse_string_to_value(val)
+                    inst[mem] = Utils.parse_string_to_value(val)
                 end
                 if sync_message then
                     sync_message:write_string(mem)

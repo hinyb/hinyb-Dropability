@@ -2,6 +2,11 @@ SkillPickup = {}
 SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
+SkillPickup.drop_skill = function(player, skill)
+    Utils.empty_skill_num = Utils.empty_skill_num + 1
+    gm.actor_skill_set(player, skill.slot_index, 0)
+    SkillPickup.skill_create(player.x, player.y, Utils.get_active_skill_diff(skill))
+end
 local function setupSkill(target, skill_params)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
     target.sprite_index = default_skill:get(4)
@@ -21,7 +26,7 @@ local function setupSkill(target, skill_params)
     end
 end
 local activate_skill
-local set_skill = function (player, interactable)
+local set_skill = function(player, interactable)
     gm.actor_skill_set(player, interactable.slot_index, interactable.skill_id)
     local skill = gm.array_get(player.skills, interactable.slot_index).active_skill
     local diff_check_table = Utils.get_skill_diff_check_table()
@@ -42,14 +47,15 @@ local function init()
     local skillPickup = Interactable.new("hinyb", "skillPickup")
     skillPickup.obj_sprite = 114
     skillPickup:add_callback("onActivate", function(Interactable, Player)
-        if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
-            local skill = gm.array_get(Player.value.skills, Interactable.value.slot_index).active_skill
-            if skill.skill_id ~= 0 then
-                gm.actor_skill_set(Player.value, skill.slot_index, 0)
-                SkillPickup.skill_create(Player.value.x, Player.value.y, Utils.get_active_skill_diff(skill))
+        if Player.value.is_local then
+            if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
+                local skill = gm.array_get(Player.value.skills, Interactable.value.slot_index).active_skill
+                if skill.skill_id ~= 0 then
+                    SkillPickup.drop_skill(Player.value, skill)
+                end
+                Utils.empty_skill_num = Utils.empty_skill_num - 1
+                activate_skill(Player.value, Interactable.value)
             end
-            activate_skill(Player.value, Interactable.value)
-            set_skill(Player.value, Interactable.value)
         end
     end)
 
@@ -63,7 +69,7 @@ local function init()
             sync_message:write_instance(Interactable)
             sync_message:send_exclude(player)
         end
-        set_skill(Player,Interactable)
+        set_skill(Player, Interactable)
     end)
     local function activate_skill_send(Player, Interactable)
         local sync_message = active_skill_packet:message_begin()
@@ -91,10 +97,10 @@ local function init()
         for i = 1, ext_num do
             local mem = message:read_string()
             local val = message:read_string()
-            if mem:sub(1,4) == "arr_" then
-                skill_params[mem:sub(5,-1)] = Utils.simple_string_to_table(val)
+            if mem:sub(1, 4) == "arr_" then
+                skill_params[mem:sub(5, -1)] = Utils.simple_string_to_table(val)
             else
-                skill_params[mem] = val
+                skill_params[mem] = Utils.parse_string_to_value(val)
             end
         end
         if Utils.get_net_type() == Net.TYPE.host then
@@ -108,17 +114,15 @@ local function init()
         local sync_message = drop_skill_packet:message_begin()
         sync_message:write_int(skill_params.skill_id)
         sync_message:write_int(skill_params.slot_index)
-        if #skill_params > 2 then
-            sync_message:write_int(#skill_params -2)
-        end
-        for k,v in pairs(skill_params) do
+        sync_message:write_int(Utils.table_get_length(skill_params) - 2)
+        for k, v in pairs(skill_params) do
             if k ~= "skill_id" and k ~= "slot_index" then
                 if type(v) == "table" then
-                    sync_message:write_string("arr_"..tostring(k))
+                    sync_message:write_string("arr_" .. tostring(k))
                     sync_message:write_string(Utils.simple_table_to_string(v))
                 else
-                sync_message:write_string(tostring(k))
-                sync_message:write_string(tostring(v))
+                    sync_message:write_string(tostring(k))
+                    sync_message:write_string(tostring(v))
                 end
             end
         end
@@ -131,6 +135,7 @@ local function init()
                 setupSkill(skill, skill_params)
             end
             activate_skill = function(Player, Interactable)
+                set_skill(Player, Interactable)
             end
         elseif Utils.get_net_type() == Net.TYPE.host then
             SkillPickup.skill_create = function(x, y, skill_params)
@@ -139,6 +144,7 @@ local function init()
             activate_skill = function(Player, Interactable)
                 local sync_message = activate_skill_send(Player, Interactable)
                 sync_message:send_to_all()
+                set_skill(Player, Interactable)
             end
         else
             SkillPickup.skill_create = function(x, y, skill_params)
@@ -148,6 +154,7 @@ local function init()
             activate_skill = function(Player, Interactable)
                 local sync_message = activate_skill_send(Player, Interactable)
                 sync_message:send_to_host()
+                set_skill(Player, Interactable)
             end
         end
     end)
