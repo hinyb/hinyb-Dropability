@@ -16,7 +16,8 @@ require("Utils")
 require("SkillPickup")
 require("drop_item")
 require("compat_patch")
-require("SkillModifiers")
+require("SkillModifier")
+require("SkillModifier_Regs")
 
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]
@@ -26,7 +27,7 @@ public_things = {
     end,
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,
-    ["SkillModifiers"] = SkillModifiers
+    ["SkillModifier"] = SkillModifier
 } -- Maybe using a wrong way
 require("./envy_setup")
 

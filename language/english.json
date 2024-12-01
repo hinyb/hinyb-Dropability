@@ -1,0 +1,8 @@
+{
+    "skill_modifier" : {
+        "echo_item" : {
+            "name" : "<r>Echo Item</c>",
+            "description" : "give a <y>temporary item</c> when use skill, cooldown and duration depends on skill's cooldown</c>"
+        }
+    }
+}
