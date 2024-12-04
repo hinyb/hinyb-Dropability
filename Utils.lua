@@ -172,7 +172,11 @@ Utils.simple_table_to_string = function(table)
         if type(v) == "table" then
             result = result .. Utils.simple_table_to_string(v) .. ","
         else
-            result = result .. tostring(v) .. ","
+            if type(v) == "string" then
+                result = result .. '"' .. tostring(v) .. '"' .. ","
+            else
+                result = result .. tostring(v) .. ","
+            end
         end
     end
     if #result > 1 then
