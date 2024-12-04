@@ -170,7 +170,7 @@ Utils.simple_table_to_string = function(table)
     local result = "{"
     for k, v in pairs(table) do
         if type(v) == "table" then
-            result = result .. Utils.simple_table_to_string(v)
+            result = result .. Utils.simple_table_to_string(v) .. ","
         else
             result = result .. tostring(v) .. ","
         end
@@ -182,7 +182,7 @@ Utils.simple_table_to_string = function(table)
     return result
 end
 Utils.simple_string_to_table = function(string)
-    if type(table) ~= "string" then
+    if type(string) ~= "string" then
         log.error("param must be string")
         return {}
     end
@@ -217,7 +217,11 @@ end
 Utils.create_table_from_array = function(arr)
     local res = {}
     for i = 0, gm.array_length(arr) - 1 do
-        table.insert(res, gm.array_get(arr, i))
+        local val = gm.array_get(arr, i)
+        if gm.is_array(val) then
+            val = Utils.create_table_from_array(val)
+        end
+        table.insert(res, val)
     end
     return res
 end
