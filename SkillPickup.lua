@@ -38,8 +38,8 @@ local set_skill = function(player, interactable)
     if interactable.ctm_sprite ~= nil then
         skill.ctm_sprite = interactable.ctm_sprite
     end
-    if interactable.ctm_arr_activate ~= nil then
-        skill.ctm_arr_activate = interactable.ctm_arr_activate
+    if interactable.ctm_arr_modifiers ~= nil then
+        skill.ctm_arr_modifiers = interactable.ctm_arr_modifiers
     end
     gm.instance_destroy(interactable.id)
 end

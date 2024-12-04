@@ -142,8 +142,8 @@ Utils.get_active_skill_diff = function(skill)
     if skill.ctm_sprite ~= nil then
         result.ctm_sprite = skill.ctm_sprite
     end
-    if skill.ctm_arr_activate ~= nil then
-        result.ctm_arr_activate = Utils.create_table_from_array(skill.ctm_arr_activate)
+    if skill.ctm_arr_modifiers ~= nil then
+        result.ctm_arr_modifiers = Utils.create_table_from_array(skill.ctm_arr_modifiers)
     end
     return result
 end
