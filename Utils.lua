@@ -77,8 +77,8 @@ Utils.get_gaussian_random = function(mu, sigma)
     local z0 = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
     return mu + sigma * z0
 end
-Utils.get_random = function(min, max)
-    return math.random(min, max)
+Utils.get_random = function(...)
+    return math.random(...)
 end
 Utils.get_slot_index_with_name = function(name)
     local type = string.match(name, ".*([ZXCV])")
@@ -100,17 +100,21 @@ Utils.get_slot_index_with_skill_id = function(skill_id)
     end
     return slot_index
 end
-Utils.warp_skill = function(skill_id, slot_index, sprite_index, image_index, translation_key)
+Utils.warp_skill = function(skill_id)
     local skill = Class.SKILL:get(skill_id)
     if skill == nil or type(skill) == "number" then
         log.error("Can't get warp skill with given skill_id" .. tostring(skill))
     end
     return {
         skill_id = skill_id,
-        slot_index = slot_index or Utils.get_slot_index_with_skill_id(skill_id) or 0.0,
-        sprite_index = sprite_index or skill:get(4),
-        image_index = image_index or skill:get(5),
-        translation_key = translation_key or string.sub(skill:get(2), 1, -6)
+        slot_index = Utils.get_slot_index_with_skill_id(skill_id),
+        name = skill:get(2),
+        description = skill:get(3),
+        sprite_index = skill:get(4),
+        image_index = skill:get(5),
+        cooldown = skill:get(6),
+        damage = skill:get(7),
+        max_stock = skill:get(8)
     }
 end
 Utils.find_item_with_localized = function(name, player)
@@ -171,6 +175,22 @@ Utils.get_net_type = function()
 end
 Utils.sync_instance_send = function(inst, table_num, sync_table)
     log.error("sync_instance_send hasn't been initialized")
+end
+Utils.log_information = function(info, offset)
+    if offset == nil then
+        offset = 0
+    end
+    local prefix = ""
+    for i = 1, offset do
+        prefix = "      " + prefix
+    end
+    log.info(prefix, info)
+    if type(info) == "table" then
+        for k, v in pairs(table) do
+            Utils.log_informationo(k, v, offset + 1)
+        end
+    end
+
 end
 Utils.simple_table_to_string = function(table)
     if type(table) ~= "table" then

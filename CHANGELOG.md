@@ -1,5 +1,6 @@
 v3.0.0
 * Improve the skillPickup, now It can have more modifiers.
+* I'm not good at balancing, so It may have many issues.
 * Fix the compatibility issues with the other mods.
 * Improve the fixing way of HANDY's compatibility issues.
 

@@ -4,48 +4,42 @@ SkillPickup.skill_create = function(x, y, skill_params)
 end
 local drop_funcs = {}
 SkillPickup.add_local_drop_callback = function(skill, fn)
-    if drop_funcs[skill.parent.id] == nil then
-        drop_funcs[skill.parent.id] = {}
-        if drop_funcs[skill.parent.id][skill.slot_index] == nil then
-            drop_funcs[skill.parent.id][skill.slot_index] = {}
-        end
+    local address = memory.get_usertype_pointer(skill)
+    if drop_funcs[address] == nil then
+        drop_funcs[address] = {}
     end
-    table.insert(drop_funcs[skill.parent.id][skill.slot_index], fn)
+    table.insert(drop_funcs[address], fn)
 end
 SkillPickup.remove_local_drop_callback = function(skill)
-    drop_funcs[skill.parent.id][skill.slot_index] = nil
+    drop_funcs[memory.get_usertype_pointer(skill)] = nil
 end
 local pick_funcs = {}
 SkillPickup.add_local_pick_callback = function(skill, fn)
-    if pick_funcs[skill.parent.id] == nil then
-        pick_funcs[skill.parent.id] = {}
-        if pick_funcs[skill.parent.id][skill.slot_index] == nil then
-            pick_funcs[skill.parent.id][skill.slot_index] = {}
-        end
+    local address = memory.get_usertype_pointer(skill)
+    if pick_funcs[address] == nil then
+        pick_funcs[address] = {}
     end
-    table.insert(pick_funcs[skill.parent.id][skill.slot_index], fn)
+    table.insert(pick_funcs[address], fn)
 end
 SkillPickup.remove_local_pick_callback = function(skill)
-    pick_funcs[skill.parent.id][skill.slot_index] = nil
+    pick_funcs[memory.get_usertype_pointer(skill)] = nil
 end
 SkillPickup.drop_skill = function(player, skill)
-    for _,funcs in pairs(drop_funcs) do
-        for _,funcs_ in pairs(funcs) do
-            for k = 1, #funcs_ do
-                funcs_[k](skill)
-            end
-        end
-    end
     Utils.empty_skill_num = Utils.empty_skill_num + 1
     local skill_params = Utils.get_active_skill_diff(skill)
     if skill.ctm_arr_modifiers then
         local ctm_arr_modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for i = 0, ctm_arr_modifiers:size() - 1 do
-            SkillModifier.remove_modifier(skill, ctm_arr_modifiers:get(i):get(0))
+            SkillModifier.remove_modifier(skill, i + 1, ctm_arr_modifiers:get(i):get(0))
         end
     end
     gm.actor_skill_set(player, skill.slot_index, 0)
     SkillPickup.skill_create(player.x, player.y, skill_params)
+    for _, funcs in pairs(drop_funcs) do
+        for i = 1, #funcs do
+            funcs[i](skill)
+        end
+    end
 end
 local function setupSkill(target, skill_params)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
@@ -101,15 +95,13 @@ local function init()
                 if skill.skill_id ~= 0 then
                     SkillPickup.drop_skill(Player.value, skill)
                 end
-                for _,funcs in pairs(pick_funcs) do
-                    for _,funcs_ in pairs(funcs) do
-                        for k = 1, #funcs_ do
-                            funcs_[k](skill)
-                        end
-                    end
-                end
                 Utils.empty_skill_num = Utils.empty_skill_num - 1
                 activate_skill(Player.value, Interactable.value)
+                for _, funcs in pairs(pick_funcs) do
+                    for i = 1, #funcs do
+                        funcs[i](skill)
+                    end
+                end
             end
         end
     end)
