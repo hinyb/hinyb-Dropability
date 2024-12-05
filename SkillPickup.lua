@@ -2,10 +2,50 @@ SkillPickup = {}
 SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
+local drop_funcs = {}
+SkillPickup.add_local_drop_callback = function(skill, fn)
+    if drop_funcs[skill.parent.id] == nil then
+        drop_funcs[skill.parent.id] = {}
+        if drop_funcs[skill.parent.id][skill.slot_index] == nil then
+            drop_funcs[skill.parent.id][skill.slot_index] = {}
+        end
+    end
+    table.insert(drop_funcs[skill.parent.id][skill.slot_index], fn)
+end
+SkillPickup.remove_local_drop_callback = function(skill)
+    drop_funcs[skill.parent.id][skill.slot_index] = nil
+end
+local pick_funcs = {}
+SkillPickup.add_local_pick_callback = function(skill, fn)
+    if pick_funcs[skill.parent.id] == nil then
+        pick_funcs[skill.parent.id] = {}
+        if pick_funcs[skill.parent.id][skill.slot_index] == nil then
+            pick_funcs[skill.parent.id][skill.slot_index] = {}
+        end
+    end
+    table.insert(pick_funcs[skill.parent.id][skill.slot_index], fn)
+end
+SkillPickup.remove_local_pick_callback = function(skill)
+    pick_funcs[skill.parent.id][skill.slot_index] = nil
+end
 SkillPickup.drop_skill = function(player, skill)
+    for _,funcs in pairs(drop_funcs) do
+        for _,funcs_ in pairs(funcs) do
+            for k = 1, #funcs_ do
+                funcs_[k](skill)
+            end
+        end
+    end
     Utils.empty_skill_num = Utils.empty_skill_num + 1
+    local skill_params = Utils.get_active_skill_diff(skill)
+    if skill.ctm_arr_modifiers then
+        local ctm_arr_modifiers = Array.wrap(skill.ctm_arr_modifiers)
+        for i = 0, ctm_arr_modifiers:size() - 1 do
+            SkillModifier.remove_modifier(skill, ctm_arr_modifiers:get(i):get(0))
+        end
+    end
     gm.actor_skill_set(player, skill.slot_index, 0)
-    SkillPickup.skill_create(player.x, player.y, Utils.get_active_skill_diff(skill))
+    SkillPickup.skill_create(player.x, player.y, skill_params)
 end
 local function setupSkill(target, skill_params)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
@@ -39,7 +79,15 @@ local set_skill = function(player, interactable)
         skill.ctm_sprite = interactable.ctm_sprite
     end
     if interactable.ctm_arr_modifiers ~= nil then
-        skill.ctm_arr_modifiers = interactable.ctm_arr_modifiers
+        local modifiers = Array.wrap(interactable.ctm_arr_modifiers)
+        for i = 0, modifiers:size() - 1 do
+            local modifier = modifiers:get(i)
+            local modifier_args = {}
+            for j = 1, modifier:size() - 1 do
+                table.insert(modifier_args, modifier:get(j))
+            end
+            SkillModifier.add_modifier(skill, modifier:get(0), table.unpack(modifier_args))
+        end
     end
     gm.instance_destroy(interactable.id)
 end
@@ -52,6 +100,13 @@ local function init()
                 local skill = gm.array_get(Player.value.skills, Interactable.value.slot_index).active_skill
                 if skill.skill_id ~= 0 then
                     SkillPickup.drop_skill(Player.value, skill)
+                end
+                for _,funcs in pairs(pick_funcs) do
+                    for _,funcs_ in pairs(funcs) do
+                        for k = 1, #funcs_ do
+                            funcs_[k](skill)
+                        end
+                    end
                 end
                 Utils.empty_skill_num = Utils.empty_skill_num - 1
                 activate_skill(Player.value, Interactable.value)
@@ -129,6 +184,8 @@ local function init()
         return sync_message
     end
     gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+        drop_funcs = {}
+        pick_funcs = {}
         if Utils.get_net_type() == Net.TYPE.single then
             SkillPickup.skill_create = function(x, y, skill_params)
                 local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)

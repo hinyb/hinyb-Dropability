@@ -2,7 +2,18 @@
     "skill_modifier" : {
         "echo_item" : {
             "name" : "<r>Echo Item</c>",
-            "description" : "give a <y>temporary item</c>, and its cooldown and duration depend on skill's cooldown</c>"
+            "description" : "Give a <y>temporary item</c>. But once you <r>stop using the skill</c>, there will be a period during which the skill can't be used"
+        },
+        "void_power" : {
+            "name" : "<r>Void Power</c>",
+            "description" : "The more empty skill slots, the more power!"
+        },
+        "booster" : {
+            "name" : "<r>Flux</c>",
+            "description" : "<y>Boost</c> the corresponding attribute, or <r>debuff</c>?",
+            "max_stock" : "<r>Charge</c>",
+            "damage" : "<r>Damage</c>",
+            "cooldown" : "<r>Cooldown</c>"
         }
     }
 }

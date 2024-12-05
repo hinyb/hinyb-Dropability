@@ -1,18 +1,12 @@
 local lang_map = gm.variable_global_get("_language_map")
 local random_skill_blacklist = {
-    [0] = true,     -- no skill
-    [204] = true    -- umbraMissile
+    [0] = true, -- no skill
+    [204] = true -- umbraMissile
 }
 local skill_id_to_slot = {}
 local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
-gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-    lang_map = gm.variable_global_get("_language_map")
-    net_type = Net.get_type()
-    ResourceManager = gm.variable_global_get("ResourceManager_object")
-    Utils.empty_skill_num = 4
-end)
 Utils = {}
 Utils.find_instance_with_m_id = function(object_index, m_id)
     local insts = Instance.find_all(object_index)
@@ -24,7 +18,7 @@ Utils.find_instance_with_m_id = function(object_index, m_id)
     end
     log.error("Can't find instance", object_index, "with m_id", m_id)
 end
-Utils.empty_skill_num = 4
+Utils.empty_skill_num = 0
 Utils.check_asset_with_name = function(namespace, identifier)
     local lookup = ResourceManager.__namespacedAssetLookup
     if gm.variable_instance_exists(lookup, namespace) and gm.variable_instance_exists(lookup[namespace], identifier) then
@@ -56,6 +50,13 @@ Utils.LCG_random = function(seed)
         end
     end
 end
+Utils.round = function(num)
+    if num >= 0 then
+        return math.floor(num + 0.5)
+    else
+        return math.ceil(num - 0.5)
+    end
+end
 Utils.random_skill_id = function(random_seed)
     local random = Utils.LCG_random(random_seed)
     return function()
@@ -66,6 +67,15 @@ Utils.random_skill_id = function(random_seed)
             end
         end
     end
+end
+Utils.get_gaussian_random = function(mu, sigma)
+    if sigma == nil then
+        sigma = 1
+    end
+    local u1 = math.random()
+    local u2 = math.random()
+    local z0 = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+    return mu + sigma * z0
 end
 Utils.get_random = function(min, max)
     return math.random(min, max)
@@ -260,7 +270,7 @@ Utils.parse_string_to_value = function(str)
 end
 Utils.table_get_length = function(table)
     local result = 0
-    for k,v in pairs(table) do
+    for k, v in pairs(table) do
         result = result + 1
     end
     return result
@@ -340,5 +350,43 @@ local function init()
         end
     end
 end
+-- basically copy from Alarm
+local alarms = {}
+Utils.add_alarm = function(func, time, ...)
+    local future_frame = gm.variable_global_get("_current_frame") + time
+    if not alarms[future_frame] then
+        alarms[future_frame] = {}
+    end
+    local alarms_num = #alarms[future_frame] + 1
+    alarms[future_frame][alarms_num] = {
+        fn = func,
+        args = select(1, ...)
+    }
+    return function()
+        if alarms[future_frame] ~= nil then
+            alarms[future_frame][alarms_num] = nil
+        end
+    end
+end
 Initialize(init)
+gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+    lang_map = gm.variable_global_get("_language_map")
+    net_type = Net.get_type()
+    ResourceManager = gm.variable_global_get("ResourceManager_object")
+    Utils.empty_skill_num = 0
+    alarms = {}
+end)
+gm.post_script_hook(gm.constants.__input_system_tick, function()
+    local current_frame = gm.variable_global_get("_current_frame")
+    if not alarms[current_frame] then
+        return
+    end
+    for i = 1, #alarms[current_frame] do
+        local status, err = pcall(alarms[current_frame][i].fn, alarms[current_frame][i].args)
+        if not status then
+            log.error("Alarm error from " .. alarms[current_frame][i] .. "\n" .. err)
+        end
+    end
+    alarms[current_frame] = nil
+end)
 return Utils
