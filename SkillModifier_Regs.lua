@@ -1,4 +1,4 @@
-SkillModifier.register_modifier("echo_item", function(skill, item_id)
+SkillModifier.register_modifier("echo_item", function(skill, data, item_id)
     local last_frame = 0
     local stack = 0
     local alarm_stop = function()
@@ -32,9 +32,11 @@ end, function(ori_desc, skill, item_id)
                Language.translate_token("skill_modifier.echo_item.description") .. "\n" ..
                Language.translate_token(item:get(2)) .. ": " .. Language.translate_token(item:get(3)) .. "\n" ..
                ori_desc
+end, function (skill)
+    return Utils.get_random(0, Class.ITEM:size() - 1)
 end)
 
-SkillModifier.register_modifier("void_power", function(skill, item_id)
+SkillModifier.register_modifier("void_power", function(skill)
     gm.get_script_ref(102397)(skill, skill.parent)
     SkillModifier.change_attr_func(skill, "damage", function(origin_value)
         return origin_value * 2 ^ Utils.empty_skill_num
@@ -51,15 +53,18 @@ end, function(skill)
     SkillModifier.restore_attr(skill, "damage")
 end)
 
+-- Utils.round(Utils.get_gaussian_random(mu(skill), sigma(skill)))
 local function register_buffer(attr, mu, sigma)
-    SkillModifier.register_modifier("booster_" .. attr, function(skill)
-        SkillModifier.change_attr(skill, attr, Utils.round(Utils.get_gaussian_random(mu(skill), sigma(skill))))
+    SkillModifier.register_modifier("booster_" .. attr, function(skill, data, value)
+        SkillModifier.change_attr(skill, attr, value)
     end, function(skill)
         SkillModifier.restore_attr(skill, attr)
     end, function(ori_desc, skill)
         return Language.translate_token("skill_modifier.booster.name") .. " • " ..
                    Language.translate_token("skill_modifier.booster" .. attr) .. ": " ..
                    Language.translate_token("skill_modifier.booster.description") .. "\n" .. ori_desc
+    end, function (skill)
+        return Utils.round(Utils.get_gaussian_random(mu(skill), sigma(skill)))
     end)
 end
 

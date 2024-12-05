@@ -86,7 +86,7 @@ local set_skill = function(player, interactable)
             for j = 1, modifier:size() - 1 do
                 table.insert(modifier_args, modifier:get(j))
             end
-            SkillModifier.add_modifier(skill, modifier:get(0), table.unpack(modifier_args))
+            SkillModifier.add_modifier_internal(skill, modifier:get(0), table.unpack(modifier_args))
         end
     end
     gm.instance_destroy(interactable.id)
