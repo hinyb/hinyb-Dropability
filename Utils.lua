@@ -111,7 +111,7 @@ Utils.get_slot_index_with_skill_id = function(skill_id)
     end
     return slot_index
 end
-Utils.get_use_delay = function (skill_id)
+Utils.get_use_delay = function(skill_id)
     local skill = Class.SKILL:get(skill_id)
     return skill:get(14)
 end
@@ -275,26 +275,10 @@ Utils.create_table_from_array = function(arr)
     return res
 end
 Utils.set_and_sync_inst_from_table = function(inst, table)
-    local change_table = {}
     for mem, val in pairs(table) do
-        if type(val) == "table" then
-            inst[mem] = Utils.create_array_from_table(val)
-            change_table[mem] = val
-        else
-            inst[mem] = val
-        end
+        inst[mem] = val
     end
-    if Utils.get_net_type() == Net.TYPE.host then
-        for mem, val in pairs(change_table) do
-            table[mem] = nil
-            table["arr_" .. mem] = Utils.simple_table_to_string(val)
-        end
-        Utils.sync_instance_send(inst, #table, table)
-        for mem, val in pairs(change_table) do
-            table["arr_" .. mem] = nil
-            table[mem] = val
-        end
-    end
+    Utils.sync_instance_send(inst, Utils.table_get_length(table), table)
 end
 Utils.parse_string_to_value = function(str)
     local ok, value = tobool(str)
@@ -331,6 +315,7 @@ local function init()
     sync_instance_packet:onReceived(function(message, player)
         local inst = message:read_instance().value
         local num = message:read_int()
+        log.info("receive", inst.object_name, num)
         local function parse_string(sync_message)
             for _ = 1, num do
                 local mem = message:read_string()
