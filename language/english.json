@@ -10,11 +10,15 @@
         },
         "flux" : {
             "name" : "<r>Flux</c>",
-            "description" : "Change the corresponding attribute <r>randomly.</c>",
+            "description" : "Change the corresponding attribute <r>randomly</c>.",
             "max_stock" : "<y>Charge</c>",
             "damage" : "<y>Damage</c>",
             "cooldown" : "<y>Cooldown</c>",
             "slot_index" : "<y>Slot</c>"
+        },
+        "life_burn" : {
+            "name" : "<r>Life Burn</c>",
+            "description" : "Can <y>forcibly</c> trigger this skill by <r>burning your life</c>."
         }
     }
 }

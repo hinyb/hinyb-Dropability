@@ -1,3 +1,8 @@
+v3.0.1
+* Fix singleplayer compatibility issues.
+* Finish random_skill_blacklist. Now it shouldn't have issues. If you find some, please feedback on github.
+* Add life_burn modifier
+
 v3.0.0
 * Improve the skillPickup, now It can have more modifiers.
 * I'm not good at balancing, so It may have many issues.

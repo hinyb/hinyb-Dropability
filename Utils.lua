@@ -1,7 +1,18 @@
 local lang_map = gm.variable_global_get("_language_map")
 local random_skill_blacklist = {
     [0] = true, -- no skill
-    [204] = true -- umbraMissile
+    [179] = true,
+    [180] = true,
+    [181] = true,
+    [182] = true,
+    [183] = true,
+    [184] = true,
+    [185] = true,
+    [193] = true,
+    [196] = true,
+    [205] = true,
+    [206] = true,
+    [207] = true
 }
 local skill_id_to_slot = {}
 local net_type
@@ -99,6 +110,10 @@ Utils.get_slot_index_with_skill_id = function(skill_id)
         log.warning("Can't get the skill's slot_index " .. skill_id)
     end
     return slot_index
+end
+Utils.get_use_delay = function (skill_id)
+    local skill = Class.SKILL:get(skill_id)
+    return skill:get(14)
 end
 Utils.warp_skill = function(skill_id)
     local skill = Class.SKILL:get(skill_id)

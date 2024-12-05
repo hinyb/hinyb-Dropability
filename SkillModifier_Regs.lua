@@ -1,5 +1,4 @@
 SkillModifier.register_modifier("echo_item", 3200, function(skill, data, item_id)
-    log.info("try to add echo")
     local last_frame = 0
     local stack = 0
     local alarm_stop = function()
@@ -10,7 +9,7 @@ SkillModifier.register_modifier("echo_item", 3200, function(skill, data, item_id
         if current_frame <= stop_frame then
             return false
         end
-        local base = math.max(skill_.cooldown_base, 10)
+        local base = math.max(skill_.cooldown_base, 10) -- use_next_frame_
         if current_frame - last_frame >= base and stack < 4 then
             stack = stack + 1
             gm.item_give(skill_.parent, item_id, 1, 0)
@@ -52,6 +51,22 @@ end, function(skill, data)
     SkillPickup.remove_local_drop_callback(skill)
     SkillPickup.remove_local_pick_callback(skill)
     SkillModifier.restore_attr(skill, "damage", data)
+end)
+
+SkillModifier.register_modifier("life_burn", 250, function(skill, data)
+    SkillModifier.add_on_can_activate_callback(data, function(skill_, result)
+        if not result.value then
+            local current_frame = gm.variable_global_get("_current_frame")
+            if skill_.use_next_frame <= current_frame then
+                if skill_.stock < skill_.max_stock then
+                    gm.actor_skill_add_stock(skill_.parent, skill_.slot_index)
+                    skill_.parent.hp = skill_.parent.hp - skill_.cooldown / 60 * 5
+                end
+            end
+        end
+    end)
+end, function(skill, data)
+    SkillModifier.remove_on_can_activate_callback(data)
 end)
 
 -- Utils.round(Utils.get_gaussian_random(mu(skill), sigma(skill)))

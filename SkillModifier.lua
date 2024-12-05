@@ -63,7 +63,6 @@ SkillModifier.add_modifier_param = function(skill_params, modifier_name, ...)
         end
     end
     table.insert(skill_params.ctm_arr_modifiers, modifier_data)
-    log.info("try to add", modifier_name)
 end
 SkillModifier.add_modifier = function(skill, modifier_name, ...)
     if select("#", ...) > 0 then
@@ -121,6 +120,15 @@ end
 SkillModifier.remove_on_stop_callback = function(modifier_data)
     modifier_data["on_stop_funcs"] = nil
 end
+SkillModifier.add_on_can_activate_callback = function(modifier_data, func)
+    if modifier_data["on_can_activate_funcs"] == nil then
+        modifier_data["on_can_activate_funcs"] = {}
+    end
+    table.insert(modifier_data["on_can_activate_funcs"], func)
+end
+SkillModifier.remove_on_can_activate_callback = function(modifier_data)
+    modifier_data["on_can_activate_funcs"] = nil
+end
 SkillModifier.get_and_create_modifier_data = function(skill, modifier_index)
     local address = memory.get_usertype_pointer(skill)
     if modifier_index == nil then
@@ -150,6 +158,20 @@ gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, ar
             end
         end
         return flag
+    end
+end)
+gm.post_script_hook(gm.constants.skill_can_activate, function(self, other, result, args)
+    local skill = gm.array_get(self.skills, args[1].value).active_skill
+    if skills_data[memory.get_usertype_pointer(skill)] then
+        local skill_data = skills_data[memory.get_usertype_pointer(skill)]
+        for i = 1, #skill_data do
+            local modifier_data = skill_data[i]
+            if modifier_data["on_can_activate_funcs"] then
+                for j = 1, #modifier_data["on_can_activate_funcs"] do
+                    modifier_data["on_can_activate_funcs"][j](skill, result)
+                end
+            end
+        end
     end
 end)
 gm.post_script_hook(102397, function(self, other, result, args)
