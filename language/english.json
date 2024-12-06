@@ -17,8 +17,12 @@
             "slot_index" : "<y>Slot</c>"
         },
         "life_burn" : {
-            "name" : "<r>Life Burn</c>",
+            "name" : "<y>Life Burn</c>",
             "description" : "Can <y>forcibly</c> trigger this skill by <r>burning your life</c>."
+        },
+        "after_image" : {
+            "name" : "<y>After-Image</c>",
+            "description" : "Focus briefly, channeling energy into an after-image. <b>All attacks are doubled</c> for three seconds. \nStacks twice. Its during depends on the skill's <y>cooldown</c>"
         }
     }
 }

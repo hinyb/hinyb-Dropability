@@ -1,5 +1,8 @@
 v3.0.3
 * Fix set_and_sync_inst_from_table can't work in single
+* Fix monsterShamGX
+* Add after_image modifier.
+* Improve echo_item's implementation.
 
 v3.0.2
 * Balance the HANDY's skill with life_burn.
