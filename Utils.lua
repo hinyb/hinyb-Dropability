@@ -136,7 +136,7 @@ Utils.find_item_with_localized = function(name, player)
     for i = 0, inventory:size() - 1 do
         local val = inventory:get(i)
         local item = Class.ITEM:get(val)
-        if (name == gm.ds_map_find_value(lang_map, item:get(2))) then
+        if (name == Language.translate_token(item:get(2))) then
             return item:get(8), val
         end
     end
@@ -179,7 +179,7 @@ Utils.find_skill_with_localized = function(name, player)
     local skills = Array.wrap(player.skills)
     for i = 0, skills:size() - 1 do
         local skill = skills:get(i).active_skill
-        if (name == gm.ds_map_find_value(lang_map, Class.SKILL:get(skill.skill_id):get(2))) then
+        if (name == Language.translate_token(Class.SKILL:get(skill.skill_id):get(2))) then
             return skill
         end
     end

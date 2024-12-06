@@ -45,7 +45,7 @@ local function setupSkill(target, skill_params)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
     target.sprite_index = default_skill:get(4)
     target.image_index = default_skill:get(5)
-    target.text = gm.ds_map_find_value(Utils.get_lang_map(), default_skill:get(2))
+    target.text = Language.translate_token(default_skill:get(2))
     for k, v in pairs(skill_params) do
         if type(v) == "table" then
             target[k] = Utils.create_array_from_table(v)
@@ -54,7 +54,7 @@ local function setupSkill(target, skill_params)
             if k == "subimage" then
                 target.image_index = v
             elseif k == "name" then
-                target.text = gm.ds_map_find_value(Utils.get_lang_map(), v)
+                target.text = Language.translate_token(v)
             end
         end
     end

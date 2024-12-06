@@ -1,3 +1,7 @@
+v3.0.4
+* Balance echo_item.
+* Fix can't drop mob skill.
+
 v3.0.3
 * Fix set_and_sync_inst_from_table can't work in single
 * Fix monsterShamGX

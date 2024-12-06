@@ -6,7 +6,7 @@ SkillModifier.register_modifier("echo_item", 3200, function(skill, data, item_id
     local stop_frame = 0
     SkillModifier.add_on_activate_callback(data, function(skill_)
         local current_frame = gm.variable_global_get("_current_frame")
-        local base = math.max(skill_.cooldown_base, 10) -- use_next_frame_
+        local base = math.max(skill_.cooldown_base, 10)
         if current_frame - last_frame >= base and stack < 4 then
             stack = stack + 1
             gm.item_give(skill_.parent, item_id, 1, 0)
@@ -18,7 +18,7 @@ SkillModifier.register_modifier("echo_item", 3200, function(skill, data, item_id
                 gm.item_take(skill_.parent, item_id, stack, 0)
             end
             stack = 0
-            skill_.use_next_frame = current_frame + (base + 30) * 6
+            skill_.use_next_frame = current_frame + (base + 30) * 4
         end, math.floor(base + 30))
     end)
 end, function(skill, data)
