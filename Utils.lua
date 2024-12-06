@@ -188,6 +188,9 @@ end
 Utils.get_net_type = function()
     return net_type or Net.get_type()
 end
+Utils.sync_call = function(str, ...)
+    log.error("sync_call hasn't been initialized")
+end
 Utils.sync_instance_send = function(inst, table_num, sync_table)
     log.error("sync_instance_send hasn't been initialized")
 end
@@ -287,6 +290,16 @@ Utils.parse_string_to_value = function(str)
     end
     return tonumber(str) or str
 end
+local handy_skill_list = {
+    [39] = 0,
+    [43] = 1,
+    [44] = 2,
+    [45] = 3
+}
+-- 44 is like some unused skill
+Utils.get_handy_drone_type = function(skill_id)
+    return handy_skill_list[skill_id]
+end
 Utils.table_get_length = function(table)
     local result = 0
     for k, v in pairs(table) do
@@ -315,7 +328,6 @@ local function init()
     sync_instance_packet:onReceived(function(message, player)
         local inst = message:read_instance().value
         local num = message:read_int()
-        log.info("receive", inst.object_name, num)
         local function parse_string(sync_message)
             for _ = 1, num do
                 local mem = message:read_string()
@@ -346,6 +358,84 @@ local function init()
             parse_string()
         end
     end)
+    local sync_call_packet = Packet.new()
+    sync_call_packet:onReceived(function(message, player)
+        local script_str = message:read_string()
+        local target = message:read_byte()
+        local num = message:read_int()
+        local params = {}
+        local function parse_string(sync_message)
+            for _ = 1, num do
+                local type = message:read_string()
+                if type == nil then
+                    break
+                end
+                if sync_message then
+                    sync_message:write_string(type)
+                end
+                if type == "inst" then
+                    local val = message:read_instance().value
+                    table.insert(params, val)
+                    if sync_message then
+                        sync_message:write_instance(val)
+                    end
+                else
+                    local val = message:read_string()
+                    table.insert(params, Utils.parse_string_to_value(val))
+                    if sync_message then
+                        sync_message:write_string(val)
+                    end
+                end
+            end
+        end
+        if Utils.get_net_type() == Net.TYPE.host and target == 1 then
+            local sync_message = sync_call_packet:message_begin()
+            sync_message:write_instance(script_str)
+            sync_message:write_byte(target)
+            sync_message:write_int(num)
+            parse_string(sync_message)
+            sync_message:send_exclude(player)
+        else
+            parse_string()
+        end
+        gm.call(script_str, table.unpack(params))
+    end)
+    Utils.sync_call = function(script_str, target, ...)
+        local function create_message(...)
+            local sync_message = sync_call_packet:message_begin()
+            sync_message:write_string(script_str)
+            if target == "host" then
+                sync_message:write_byte(0)
+            elseif target == "all" then
+                sync_message:write_byte(1)
+            else
+                log.err("unknown target", target)
+            end
+            sync_message:write_int(select("#", ...))
+            for _, param in ipairs({...}) do
+                if Instance.is(param) then
+                    sync_message:write_string("inst")
+                    sync_message:write_instance(param)
+                else
+                    sync_message:write_string("num")
+                    sync_message:write_string(tostring(param))
+                end
+            end
+            return sync_message
+        end
+        if target == "host" then
+            if Utils.get_net_type() == Net.TYPE.host or Utils.get_net_type() == Net.TYPE.single then
+                gm.call(script_str, ...)
+            else
+                local message = create_message(...)
+                message:send_to_host()
+            end
+        elseif target == "all" then
+            gm.call(script_str, ...)
+            local message = create_message(...)
+            message:send_to_host()
+        end
+    end
     Utils.sync_instance_send = function(inst, table_num, sync_table)
         local sync_message = sync_instance_packet:message_begin()
         if not gm.instance_exists(inst.id) then

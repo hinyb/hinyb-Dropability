@@ -1,3 +1,8 @@
+v3.0.2
+* Balance the HANDY's skill with life_burn.
+* Fix scrap_bar's compatibility issue.
+* Fix life_burn's sync bug
+
 v3.0.1
 * Fix singleplayer compatibility issues.
 * Finish random_skill_blacklist. Now it shouldn't have issues. If you find some, please feedback on github.

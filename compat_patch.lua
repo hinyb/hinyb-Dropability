@@ -11,8 +11,9 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
         if result.value == -4 or result.value == 0 then
             if Instance.exists(self) and self.dead ~= 1 then
                 miner_heat_bar_flag = true
-                gm.call("gml_Script__survivor_miner_create_heat_bar", self, other)
-                result = gm.call("gml_Script__survivor_miner_find_heat_bar", self, other, self)
+                gm.call("gml_Script__survivor_miner_create_heat_bar", args[1].value, args[1].value)
+                result =
+                    gm.call("gml_Script__survivor_miner_find_heat_bar", args[1].value, args[1].value, args[1].value)
                 miner_heat_bar_flag = false
             end
         end
@@ -33,38 +34,32 @@ gm.post_code_execute("gml_Object_oP_Step_2", function(self, other)
         self.class = cache_class
     end
 end)
+-- So weird, it seems like 'self' must be a skill, but in gml_Script__survivor_drifter_create_scrap_bar, it pass an oP. This is really confusing.
+-- And gm.call can't pass 'self' as a YYObjectBase*, might have to use memory.dynamic_cal. So, I decided not to replace the result.
 local drifter_scrap_bar_flag = false
 gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self, other, result, args)
     if not drifter_scrap_bar_flag then
         if result.value == -4 or result.value == 0 then
-            local target = memory.resolve_pointer_to_type(memory.get_usertype_pointer(self), "YYObjectBase*")
-            drifter_scrap_bar_flag = true
-            gm.call("gml_Script__survivor_drifter_create_scrap_bar", other, other)
-            result = gm.call("gml_Script__survivor_drifter_find_scrap_bar", target, other, other)
+            if Instance.exists(self) and self.dead ~= 1 then
+                drifter_scrap_bar_flag = true
+                gm.call("gml_Script__survivor_drifter_create_scrap_bar", args[1].value, args[1].value)
+                drifter_scrap_bar_flag = false
+            end
         end
     end
 end)
 gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
-    if self.class ~= 14 then
+    if self.class ~= 6 then
         drifter_scarp_bar_list[self.id] = true
     end
     drifter_scrap_bar_flag = true
 end)
-local drifter_flag = false
-local cache_drifter = 0
-gm.pre_code_execute("gml_Object_oDrifterRec_Collision_oP", function(self, other)
-    if drifter_scarp_bar_list[other.id] then
-        drifter_flag = true
-        cache_drifter = other.class
-        other.class = 14
-    end
-end)
-gm.post_code_execute("gml_Object_oDrifterRec_Collision_oP", function(self, other)
-    if drifter_flag then
-        drifter_flag = false
-        other.class = cache_drifter
-    end
-end)
+memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h+18h]"}, {"RValue*", "CInstance*"}, 0,
+    {}, gm.get_object_function_address("gml_Object_oDrifterRec_Collision_oP"):add(480), function(args)
+        if drifter_scarp_bar_list[args[2].id] then
+            args[1].value = args[2].class
+        end
+    end)
 local function defalut_nil(target, member, value)
     if target[member] == nil then
         target[member] = value or false
@@ -96,23 +91,17 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     nilcreate(self, "sprite_jump", 3)
     nilcreate(self, "sprite_walk", 4)
 end)
-local handy_skill_list = {
-    [39] = 0,
-    [43] = 1,
-    [44] = 2,
-    [45] = 3
-} -- 44 is like some unused skill
 -- still have some issues
 memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0, {},
     gm.get_script_function_address(gm.constants.actor_death):add(38162), function(args)
         local skills = args[2].skills
         for i = 0, #skills - 1 do
             local skill_id = gm.array_get(skills, i).active_skill.skill_id
-            if handy_skill_list[skill_id] then
+            if Utils.get_handy_drone_type(skill_id) then
                 local drone = gm.instance_create(args[2].x, args[2].y, 685)
                 drone.parent = args[2].id
                 drone.team = args[2].team
-                drone.set_type(drone, args[2], handy_skill_list[skill_id])
+                drone.set_type(drone, args[2], Utils.get_handy_drone_type(skill_id))
             end
         end
         args[1]:set(-1) -- to override original, hope this may not break something

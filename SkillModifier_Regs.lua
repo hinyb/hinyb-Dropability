@@ -59,8 +59,10 @@ SkillModifier.register_modifier("life_burn", 250, function(skill, data)
             local current_frame = gm.variable_global_get("_current_frame")
             if skill_.use_next_frame <= current_frame then
                 if skill_.stock < skill_.max_stock then
-                    gm.actor_skill_add_stock(skill_.parent, skill_.slot_index)
-                    skill_.parent.hp = skill_.parent.hp - skill_.cooldown / 60 * 5
+                    Utils.sync_call("gml_Script_actor_skill_add_stock", "host", skill_.parent, skill_.slot_index)
+                    gm.call("gml_Script_actor_skill_add_stock", skill_.parent, skill_.slot_index)
+                    local num = Utils.get_handy_drone_type(skill_.skill_id) ~= nil and 25 or skill_.cooldown / 60 * 5
+                    Utils.set_and_sync_inst_from_table(skill_.parent,{hp = skill_.parent.hp - num})
                 end
             end
         end
@@ -69,7 +71,6 @@ end, function(skill, data)
     SkillModifier.remove_on_can_activate_callback(data)
 end)
 
--- Utils.round(Utils.get_gaussian_random(mu(skill), sigma(skill)))
 local function register_buffer(attr, fn)
     SkillModifier.register_modifier("flux_" .. attr, 125, function(skill, data, value)
         SkillModifier.change_attr(skill, attr, data, value)
