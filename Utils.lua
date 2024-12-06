@@ -281,7 +281,9 @@ Utils.set_and_sync_inst_from_table = function(inst, table)
     for mem, val in pairs(table) do
         inst[mem] = val
     end
-    Utils.sync_instance_send(inst, Utils.table_get_length(table), table)
+    if Utils.get_net_type() ~= Net.TYPE.single then
+        Utils.sync_instance_send(inst, Utils.table_get_length(table), table)
+    end
 end
 Utils.parse_string_to_value = function(str)
     local ok, value = tobool(str)
@@ -432,8 +434,13 @@ local function init()
             end
         elseif target == "all" then
             gm.call(script_str, ...)
-            local message = create_message(...)
-            message:send_to_host()
+            if Utils.get_net_type() == Net.TYPE.client then
+                local message = create_message(...)
+                message:send_to_host()
+            elseif Utils.get_net_type() == Net.TYPE.host then
+                local message = create_message(...)
+                message:send_to_all()
+            end
         end
     end
     Utils.sync_instance_send = function(inst, table_num, sync_table)

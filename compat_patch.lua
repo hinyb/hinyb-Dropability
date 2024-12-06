@@ -73,8 +73,6 @@ local function nilcreate(target, member, num)
     end
 end
 gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
-    drifter_scrap_bar_flag = false
-    miner_heat_bar_flag = false
     defalut_nil(self, "charged")
     defalut_nil(self, "_miner_charged_elder_kill_count")
     defalut_nil(self, "sniper_bonus")

@@ -1,3 +1,6 @@
+v3.0.3
+* Fix set_and_sync_inst_from_table can't work in single
+
 v3.0.2
 * Balance the HANDY's skill with life_burn.
 * Fix scrap_bar's compatibility issue.
