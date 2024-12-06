@@ -1,18 +1,17 @@
 local lang_map = gm.variable_global_get("_language_map")
 local random_skill_blacklist = {
-    [0] = true, -- no skill
-    [179] = true,
-    [180] = true,
-    [181] = true,
-    [182] = true,
-    [183] = true,
-    [184] = true,
-    [185] = true,
-    [193] = true,
-    [196] = true,
-    [205] = true,
-    [206] = true,
-    [207] = true
+    [0] = true,   -- no skill
+    [179] = true, -- monsterBossZ    It seems like the Bosses' skills are different from normal skills
+    [180] = true, -- monsterBossX
+    [181] = true, -- monsterBossC
+    [182] = true, -- monsterBossV
+    [183] = true, -- monsterBossFinalZ
+    [184] = true, -- monsterBossFinalX
+    [185] = true, -- can't set
+    [196] = true, -- monsterBrambleZ It need a head, and I don't think player can have a head.
+    [205] = true, -- ImpfriendRecall
+    [206] = true, -- can't set
+    [207] = true  -- can't set
 }
 local skill_id_to_slot = {}
 local net_type
@@ -308,6 +307,9 @@ Utils.table_get_length = function(table)
         result = result + 1
     end
     return result
+end
+Utils.replace_skill = function(skill, new_skill_id)
+
 end
 local function init()
     local skill_t = {

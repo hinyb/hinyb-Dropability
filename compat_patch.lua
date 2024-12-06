@@ -88,6 +88,7 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     nilcreate(self, "sprite_jump_peak", 3)
     nilcreate(self, "sprite_jump", 3)
     nilcreate(self, "sprite_walk", 4)
+    self.totem_spawn_id = gm.array_create(0,0) -- monsterShamGX
 end)
 -- still have some issues
 memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0, {},
