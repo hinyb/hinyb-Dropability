@@ -1,3 +1,6 @@
+v3.0.6
+* Fix memory leak caused by modifier.
+
 v3.0.5
 * Fix after_image's incorrect proability.
 * Fix can't get umbraskills' slot_index.

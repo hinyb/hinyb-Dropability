@@ -9,6 +9,10 @@ local modifiers_weight = {}
 local modifiers_random_stack_check = {}
 local total_weight = 0
 local skills_data = {}
+gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+    skills_data = {}
+end)
+
 SkillModifier.get_random_modifier = function()
     local rand = Utils.get_random(0, total_weight)
     local sum_weight = 0
