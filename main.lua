@@ -17,7 +17,6 @@ require("SkillPickup")
 require("drop_item")
 require("compat_patch")
 require("SkillModifier")
-require("SkillModifier_Regs")
 
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]

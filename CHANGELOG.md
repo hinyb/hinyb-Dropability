@@ -1,3 +1,14 @@
+v3.0.5
+* Fix after_image's incorrect proability.
+* Fix can't get umbraskills' slot_index.
+* Add useless skills to blacklist.
+* Balance echo_item.
+* Fix life_burn can't trigger at correct time.
+* Add max_stack check.
+* Fix my brain dead bar code. Now it should work porperly in multiplayer and singleplayer.
+* Fix SniperDrone, now don't need LendDrone to use SniperV. Later will remove the code in LendDrone.
+* Move SkillModifier_Regs to SkillChest.
+
 v3.0.4
 * Balance echo_item.
 * Fix can't drop mob skill.

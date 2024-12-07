@@ -6,10 +6,11 @@ local modifiers_remove_func = {}
 local modifiers_info_func = {}
 local modifiers_params_func = {}
 local modifiers_weight = {}
+local modifiers_random_stack_check = {}
 local total_weight = 0
 local skills_data = {}
 SkillModifier.get_random_modifier = function()
-    local rand = Utils.get_random() * total_weight
+    local rand = Utils.get_random(0, total_weight)
     local sum_weight = 0
     for name, weight in pairs(modifiers_weight) do
         sum_weight = sum_weight + weight
@@ -41,6 +42,30 @@ SkillModifier.restore_attr = function(skill, attr_str, modifier_data, new_value)
     skill[attr_str] = new_value
     if new_value == nil then
         gm.get_script_ref(102397)(skill, skill.parent)
+    end
+end
+SkillModifier.get_modifier_num = function(skill, modifier_name)
+    local stack = 0
+    if skill.ctm_arr_modifiers ~= nil then
+        for _, modifier_data in ipairs(skill.ctm_arr_modifiers) do
+            if modifier_data[1] == modifier_name then
+                stack = stack + 1
+            end
+        end
+    end
+    return stack
+end
+SkillModifier.add_random_modifier_param_with_check = function(skill_params)
+    local random_modifier_name = SkillModifier.get_random_modifier()
+    local random_stack_check = modifiers_random_stack_check[random_modifier_name]
+    if random_stack_check == nil then
+        SkillModifier.add_modifier_param(skill_params, random_modifier_name)
+    else
+        if random_stack_check(skill_params) then
+            SkillModifier.add_modifier_param(skill_params, random_modifier_name)
+        else
+            SkillModifier.add_random_modifier_param_with_check(skill_params)
+        end
     end
 end
 SkillModifier.add_modifier_param = function(skill_params, modifier_name, ...)
@@ -91,12 +116,14 @@ SkillModifier.remove_modifier = function(skill, modifier_index, modifier_name)
     modifiers_remove_func[modifier_name](skill, skills_data[memory.get_usertype_pointer(skill)][modifier_index])
     skills_data[memory.get_usertype_pointer(skill)][modifier_index] = nil
 end
-SkillModifier.register_modifier = function(modifier_name, weight, add_func, remove_func, info_func, params_func)
+SkillModifier.register_modifier = function(modifier_name, weight, random_stack_check, add_func, remove_func, info_func,
+    params_func)
     if modifiers_add_func[modifier_name] ~= nil then
         log.warn("Seems some modifiers have the same name", modifier_name)
     end
     modifiers_weight[modifier_name] = weight or 500
     total_weight = total_weight + modifiers_weight[modifier_name]
+    modifiers_random_stack_check[modifier_name] = random_stack_check
     modifiers_add_func[modifier_name] = add_func
     modifiers_remove_func[modifier_name] = remove_func
     modifiers_info_func[modifier_name] = info_func

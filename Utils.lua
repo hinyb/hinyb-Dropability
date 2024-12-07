@@ -1,6 +1,8 @@
-local lang_map = gm.variable_global_get("_language_map")
 local random_skill_blacklist = {
-    [0] = true,   -- no skill
+    [0] = true, -- no skill
+    [71] = true, -- Spotter Recall   Useless skills
+    [177] = true, -- Reload
+    [178] = true, -- monsterWispBZ
     [179] = true, -- monsterBossZ    It seems like the Bosses' skills are different from normal skills
     [180] = true, -- monsterBossX
     [181] = true, -- monsterBossC
@@ -11,9 +13,16 @@ local random_skill_blacklist = {
     [196] = true, -- monsterBrambleZ It need a head, and I don't think player can have a head.
     [205] = true, -- ImpfriendRecall
     [206] = true, -- can't set
-    [207] = true  -- can't set
+    [207] = true -- can't set
 }
-local skill_id_to_slot = {}
+local skill_id_to_slot = {
+    [199] = 0, -- umbraWhip
+    [200] = 0, -- umbraPunch
+    [201] = 2, -- umbraExplode
+    [202] = 2, -- umbraDash
+    [203] = 2, -- umbraMissile
+    [204] = 2 -- umbraSnipe
+}
 local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
@@ -36,9 +45,6 @@ Utils.check_asset_with_name = function(namespace, identifier)
     else
         return false
     end
-end
-Utils.get_lang_map = function()
-    return lang_map
 end
 Utils.find_skill_id_with_name = function(name)
     for i = 0, Class.SKILL:size() - 1 do
@@ -67,6 +73,11 @@ Utils.round = function(num)
         return math.ceil(num - 0.5)
     end
 end
+Utils.require_all = function (folder)
+    local script_path = debug.getinfo(2, "S").source:match("@(.*)main.lua")
+    local names = path.get_files(script_path..folder)
+    for _, name in ipairs(names) do require(name) end
+end
 Utils.random_skill_id = function(random_seed)
     local random = Utils.LCG_random(random_seed)
     return function()
@@ -89,6 +100,16 @@ Utils.get_gaussian_random = function(mu, sigma)
 end
 Utils.get_random = function(...)
     return math.random(...)
+end
+Utils.get_random_buff = function(is_timed, isdebuff)
+    while true do
+        local buff_id = Utils.get_random(0, Class.Buff:get_size())
+        if is_timed == nil or Class.Buff:get(buff_id):get(13) == is_timed then
+            if isdebuff == nil or Class.Buff:get(buff_id):get(14) == isdebuff then
+                return buff_id
+            end
+        end
+    end
 end
 Utils.get_slot_index_with_name = function(name)
     local type = string.match(name, ".*([ZXCV])")
@@ -199,12 +220,13 @@ Utils.log_information = function(info, offset)
     end
     local prefix = ""
     for i = 1, offset do
-        prefix = "      " + prefix
+        prefix = "      "..prefix
     end
     log.info(prefix, info)
     if type(info) == "table" then
         for k, v in pairs(table) do
-            Utils.log_informationo(k, v, offset + 1)
+            log.info(prefix, k)
+            Utils.log_information(v, offset + 1)
         end
     end
 
@@ -405,16 +427,10 @@ local function init()
         gm.call(script_str, table.unpack(params))
     end)
     Utils.sync_call = function(script_str, target, ...)
-        local function create_message(...)
+        local function create_message(target_, ...)
             local sync_message = sync_call_packet:message_begin()
             sync_message:write_string(script_str)
-            if target == "host" then
-                sync_message:write_byte(0)
-            elseif target == "all" then
-                sync_message:write_byte(1)
-            else
-                log.err("unknown target", target)
-            end
+            sync_message:write_byte(target_)
             sync_message:write_int(select("#", ...))
             for _, param in ipairs({...}) do
                 if Instance.is(param) then
@@ -428,20 +444,26 @@ local function init()
             return sync_message
         end
         if target == "host" then
-            if Utils.get_net_type() == Net.TYPE.host or Utils.get_net_type() == Net.TYPE.single then
+            if Utils.get_net_type() ~= Net.TYPE.client then
                 gm.call(script_str, ...)
             else
-                local message = create_message(...)
+                local message = create_message(0, ...)
                 message:send_to_host()
             end
         elseif target == "all" then
             gm.call(script_str, ...)
             if Utils.get_net_type() == Net.TYPE.client then
-                local message = create_message(...)
+                local message = create_message(1, ...)
                 message:send_to_host()
             elseif Utils.get_net_type() == Net.TYPE.host then
-                local message = create_message(...)
+                local message = create_message(1, ...)
                 message:send_to_all()
+            end
+        elseif target == "client_and_host" then
+            gm.call(script_str, ...)
+            if Utils.get_net_type() == Net.TYPE.client then
+                local message = create_message(0, ...)
+                message:send_to_host()
             end
         end
     end
@@ -489,7 +511,6 @@ Utils.add_alarm = function(func, time, ...)
 end
 Initialize(init)
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-    lang_map = gm.variable_global_get("_language_map")
     net_type = Net.get_type()
     ResourceManager = gm.variable_global_get("ResourceManager_object")
     Utils.empty_skill_num = 0
