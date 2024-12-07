@@ -73,10 +73,12 @@ Utils.round = function(num)
         return math.ceil(num - 0.5)
     end
 end
-Utils.require_all = function (folder)
+Utils.require_all = function(folder)
     local script_path = debug.getinfo(2, "S").source:match("@(.*)main.lua")
-    local names = path.get_files(script_path..folder)
-    for _, name in ipairs(names) do require(name) end
+    local names = path.get_files(script_path .. folder)
+    for _, name in ipairs(names) do
+        require(name)
+    end
 end
 Utils.random_skill_id = function(random_seed)
     local random = Utils.LCG_random(random_seed)
@@ -208,6 +210,7 @@ end
 Utils.get_net_type = function()
     return net_type or Net.get_type()
 end
+local sync_call_func_whitelist = {gml_Script_actor_skill_add_stock = true}
 Utils.sync_call = function(str, ...)
     log.error("sync_call hasn't been initialized")
 end
@@ -220,7 +223,7 @@ Utils.log_information = function(info, offset)
     end
     local prefix = ""
     for i = 1, offset do
-        prefix = "      "..prefix
+        prefix = "      " .. prefix
     end
     log.info(prefix, info)
     if type(info) == "table" then
@@ -313,6 +316,42 @@ Utils.parse_string_to_value = function(str)
     end
     return tonumber(str) or str
 end
+local actor_attr_table = {}
+Utils.change_actor_attr = function(inst, attr_str, new_value)
+    if actor_attr_table[inst.id] == nil then
+        actor_attr_table[inst.id] = {}
+    end
+    if type(new_value) == "boolean" then
+        actor_attr_table[inst.id][attr_str] = new_value
+    else
+        actor_attr_table[inst.id][attr_str] = new_value - inst[attr_str]
+    end
+    inst[attr_str] = new_value
+end
+Utils.change_actor_attr_func = function(inst, attr_str, new_value)
+    if actor_attr_table[inst.id] == nil then
+        actor_attr_table[inst.id] = {}
+    end
+    actor_attr_table[inst.id][attr_str] = new_value
+    inst[attr_str] = new_value(inst[attr_str])
+end
+Utils.restore_actor_attr = function(inst, attr_str)
+    actor_attr_table[inst.id][attr_str] = nil
+    gm.call("gml_Script_recalculate_stats", inst, inst)
+end
+gm.post_script_hook(gm.constants.recalculate_stats, function(self, other, result, args)
+    if actor_attr_table[self.id] then
+        for str,value in pairs(actor_attr_table[self.id]) do
+            if type(value) == "boolean" then
+                self[str] = value
+            elseif type(value) == "function" then
+                self[str] = value(self[str])
+            else
+                self[str] = self[str] + value
+            end
+        end
+    end
+end)
 local handy_skill_list = {
     [39] = 0,
     [43] = 1,
@@ -387,6 +426,9 @@ local function init()
     local sync_call_packet = Packet.new()
     sync_call_packet:onReceived(function(message, player)
         local script_str = message:read_string()
+        if not sync_call_func_whitelist[script_str] then
+            log.error("try to call a function that isn't in the whitelist")
+        end
         local target = message:read_byte()
         local num = message:read_int()
         local params = {}
@@ -515,6 +557,7 @@ gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     ResourceManager = gm.variable_global_get("ResourceManager_object")
     Utils.empty_skill_num = 0
     alarms = {}
+    actor_attr_table = {}
 end)
 gm.post_script_hook(gm.constants.__input_system_tick, function()
     local current_frame = gm.variable_global_get("_current_frame")

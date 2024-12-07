@@ -41,20 +41,27 @@ SkillModifier.change_attr_func = function(skill, attr_str, modifier_data, new_va
     modifier_data["skills_attr"][attr_str] = new_value
     skill[attr_str] = new_value(skill[attr_str])
 end
-SkillModifier.restore_attr = function(skill, attr_str, modifier_data, new_value)
+SkillModifier.restore_attr = function(skill, attr_str, modifier_data)
     modifier_data["skills_attr"][attr_str] = nil
-    skill[attr_str] = new_value
-    if new_value == nil then
-        gm.get_script_ref(102397)(skill, skill.parent)
-    end
+    gm.get_script_ref(102397)(skill, skill.parent)
 end
 SkillModifier.get_modifier_num = function(skill, modifier_name)
     local stack = 0
     if skill.ctm_arr_modifiers ~= nil then
-        for _, modifier_data in ipairs(skill.ctm_arr_modifiers) do
-            if modifier_data[1] == modifier_name then
-                stack = stack + 1
+        if type(skill) == table then
+            for _, modifier_data in ipairs(skill.ctm_arr_modifiers) do
+                if modifier_data[1] == modifier_name then
+                    stack = stack + 1
+                end
             end
+        elseif type(skill) == "userdata" then
+            for i = 1, gm.array_length(skill.ctm_arr_modifiers) do
+                if gm.array_get(gm.array_get(skill.ctm_arr_modifiers, i), 0) == modifier_name then
+                    stack = stack + 1
+                end
+            end
+        else
+            log.error("can't get skill's modifier num")
         end
     end
     return stack
@@ -117,7 +124,9 @@ SkillModifier.add_modifier_internal = function(skill, modifier_name, ...)
     modifiers_add_func[modifier_name](skill, SkillModifier.get_and_create_modifier_data(skill), ...)
 end
 SkillModifier.remove_modifier = function(skill, modifier_index, modifier_name)
-    modifiers_remove_func[modifier_name](skill, skills_data[memory.get_usertype_pointer(skill)][modifier_index])
+    if modifiers_remove_func[modifier_name] then
+        modifiers_remove_func[modifier_name](skill, skills_data[memory.get_usertype_pointer(skill)][modifier_index])
+    end
     skills_data[memory.get_usertype_pointer(skill)][modifier_index] = nil
 end
 SkillModifier.register_modifier = function(modifier_name, weight, random_stack_check, add_func, remove_func, info_func,
@@ -175,12 +184,12 @@ SkillModifier.get_and_create_modifier_data = function(skill, modifier_index)
 end
 gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, args)
     local skill = gm.array_get(self.skills, args[1].value).active_skill
-    if skills_data[memory.get_usertype_pointer(skill)] then
-        local skill_data = skills_data[memory.get_usertype_pointer(skill)]
+    local skill_data = skills_data[memory.get_usertype_pointer(skill)]
+    if skill_data then
         local flag = true
         for i = 1, #skill_data do
             local modifier_data = skill_data[i]
-            if modifier_data["on_activate_funcs"] then
+            if modifier_data and modifier_data["on_activate_funcs"] then
                 for j = 1, #modifier_data["on_activate_funcs"] do
                     if modifier_data["on_activate_funcs"][j](skill) == false then
                         flag = false
@@ -193,11 +202,11 @@ gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, ar
 end)
 gm.post_script_hook(gm.constants.skill_can_activate, function(self, other, result, args)
     local skill = gm.array_get(self.skills, args[1].value).active_skill
-    if skills_data[memory.get_usertype_pointer(skill)] then
-        local skill_data = skills_data[memory.get_usertype_pointer(skill)]
+    local skill_data = skills_data[memory.get_usertype_pointer(skill)]
+    if skill_data then
         for i = 1, #skill_data do
             local modifier_data = skill_data[i]
-            if modifier_data["on_can_activate_funcs"] then
+            if modifier_data and modifier_data["on_can_activate_funcs"] then
                 for j = 1, #modifier_data["on_can_activate_funcs"] do
                     modifier_data["on_can_activate_funcs"][j](skill, result)
                 end
@@ -209,7 +218,6 @@ gm.post_script_hook(102397, function(self, other, result, args)
     local skill = memory.resolve_pointer_to_type(memory.get_usertype_pointer(self), "YYObjectBase*")
     local skill_data = skills_data[memory.get_usertype_pointer(skill)]
     if skill_data then
-        local flag = true
         for i = 1, #skill_data do
             local modifier_data = skill_data[i]
             if modifier_data and modifier_data["skills_attr"] then
@@ -224,7 +232,6 @@ gm.post_script_hook(102397, function(self, other, result, args)
                 end
             end
         end
-        return flag
     end
 end)
 gm.post_script_hook(102401, function(self, other, result, args)
