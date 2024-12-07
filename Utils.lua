@@ -23,6 +23,7 @@ local skill_id_to_slot = {
     [203] = 2, -- umbraMissile
     [204] = 2 -- umbraSnipe
 }
+local sync_call_func_whitelist = {gml_Script_actor_skill_add_stock = true}
 local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
@@ -210,7 +211,6 @@ end
 Utils.get_net_type = function()
     return net_type or Net.get_type()
 end
-local sync_call_func_whitelist = {gml_Script_actor_skill_add_stock = true}
 Utils.sync_call = function(str, ...)
     log.error("sync_call hasn't been initialized")
 end
@@ -369,8 +369,63 @@ Utils.table_get_length = function(table)
     end
     return result
 end
-Utils.replace_skill = function(skill, new_skill_id)
-
+Utils.create_packet = function (onReceived, type_table)
+    local sync_packet = Packet.new()
+    sync_packet:onReceived(function(message, player)
+        local num = message:read_byte()
+        local type = message:read_byte()
+        local sync_message
+        if type then
+            sync_message = sync_packet:message_begin()
+            sync_message:write_byte(num)
+            sync_message:write_byte(0)
+        end
+        local params_table = {}
+        for i = 1, num do
+            local value
+            if type_table[i] == "Instance" then
+                value = message:read_instance().value
+                table.insert(params_table, value)
+            elseif type_table[i] == "table" then
+                value = message:read_string()
+                table.insert(params_table, Utils.simple_string_to_table(value))
+            elseif type_table[i] == "array" then
+                value = message:read_string()
+                table.insert(params_table, Utils.create_array_from_table(Utils.simple_string_to_table(value)))
+            else
+                value = message:read_string()
+                table.insert(params_table, Utils.parse_string_to_value(value))
+            end
+            if type then
+                if type_table[i] == "Instance" then
+                    sync_message:write_instance(value)
+                else
+                    sync_message:write_string(value)
+                end
+            end
+        end
+        onReceived(player,table.unpack(params_table))
+        if type then
+            sync_message:send_exclude(player)
+        end
+    end)
+    return function (type, ...)
+        local sync_message = sync_packet:message_begin()
+        sync_message:write_byte(select("#", ...))
+        sync_message:write_byte(type)
+        for i, v in ipairs({...}) do
+            if type_table[i] == "Instance" then
+                sync_message:write_instance(v)
+            elseif type_table[i] == "table" then
+                sync_message:write_string(Utils.simple_table_to_string(v))
+            elseif type_table[i] == "array" then
+                sync_message:write_string(Utils.simple_table_to_string(Utils.create_table_from_array(v)))
+            else
+                sync_message:write_string(tostring(v))
+            end
+        end
+        return sync_message
+    end
 end
 local function init()
     local skill_t = {
