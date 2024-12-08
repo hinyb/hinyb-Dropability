@@ -1,7 +1,7 @@
 local random_skill_blacklist = {
     [0] = true, -- no skill
-    [71] = true, -- Spotter Recall   Useless skills
-    [177] = true, -- Reload
+    [70] = true, -- Reload           Useless skills
+    [71] = true, -- Spotter Recall   
     [178] = true, -- monsterWispBZ
     [179] = true, -- monsterBossZ    It seems like the Bosses' skills are different from normal skills
     [180] = true, -- monsterBossX
@@ -23,7 +23,6 @@ local skill_id_to_slot = {
     [203] = 2, -- umbraMissile
     [204] = 2 -- umbraSnipe
 }
-local sync_call_func_whitelist = {gml_Script_actor_skill_add_stock = true}
 local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
@@ -74,13 +73,6 @@ Utils.round = function(num)
         return math.ceil(num - 0.5)
     end
 end
-Utils.require_all = function(folder)
-    local script_path = debug.getinfo(2, "S").source:match("@(.*)main.lua")
-    local names = path.get_files(script_path .. folder)
-    for _, name in ipairs(names) do
-        require(name)
-    end
-end
 Utils.random_skill_id = function(random_seed)
     local random = Utils.LCG_random(random_seed)
     return function()
@@ -90,6 +82,14 @@ Utils.random_skill_id = function(random_seed)
                 return rnd_skill_id
             end
         end
+    end
+end
+Utils.get_gaussian_random_within = function(min, max, mu, sigma)
+    local random = Utils.get_gaussian_random(mu,sigma)
+    if (min == nil or random >= min) and (max == nil or random <= max) then
+        return random
+    else
+        return Utils.get_gaussian_random(mu,sigma)
     end
 end
 Utils.get_gaussian_random = function(mu, sigma)
@@ -178,11 +178,13 @@ Utils.get_skill_diff_check_table = function()
     }
 end
 Utils.get_active_skill_diff = function(skill)
-    local default_skill = Class.SKILL:get(skill.skill_id)
-    local diff_check_table = Utils.get_skill_diff_check_table()
     local result = {}
     result.skill_id = skill.skill_id
     result.slot_index = skill.slot_index
+    result.stock = skill.stock
+    --[[
+    local default_skill = Class.SKILL:get(skill.skill_id)
+    local diff_check_table = Utils.get_skill_diff_check_table()
     if skill.disable_stock_regen ~= not default_skill:get(10) then
         result["disable_stock_regen"] = skill.disable_stock_regen
     end
@@ -190,7 +192,7 @@ Utils.get_active_skill_diff = function(skill)
         if skill[k] ~= default_skill:get(v) then
             result[k] = skill[k]
         end
-    end
+    end]]
     if skill.ctm_sprite ~= nil then
         result.ctm_sprite = skill.ctm_sprite
     end
@@ -211,9 +213,6 @@ end
 Utils.get_net_type = function()
     return net_type or Net.get_type()
 end
-Utils.sync_call = function(str, ...)
-    log.error("sync_call hasn't been initialized")
-end
 Utils.sync_instance_send = function(inst, table_num, sync_table)
     log.error("sync_instance_send hasn't been initialized")
 end
@@ -232,7 +231,16 @@ Utils.log_information = function(info, offset)
             Utils.log_information(v, offset + 1)
         end
     end
-
+end
+Utils.check_table_is_array = function(table)
+    local index = 1
+    for k, _ in pairs(table) do
+        if k ~= index then
+            return false
+        end
+        index = index + 1
+    end
+    return true
 end
 Utils.simple_table_to_string = function(table)
     if type(table) ~= "table" then
@@ -240,7 +248,11 @@ Utils.simple_table_to_string = function(table)
         return "{}"
     end
     local result = "{"
+    local is_array = Utils.check_table_is_array(table)
     for k, v in pairs(table) do
+        if not is_array then
+            result = result .. "[" .. '"' .. tostring(k) .. '"' .. "]="
+        end
         if type(v) == "table" then
             result = result .. Utils.simple_table_to_string(v) .. ","
         else
@@ -279,6 +291,9 @@ local function tobool(str)
     return false, false
 end
 Utils.create_array_from_table = function(table)
+    if not Utils.check_table_is_array(table) then
+        log.error("Can't create an array from table")
+    end
     local res = gm.array_create(#table, 0)
     for i = 1, #table do
         local val_ = table[i]
@@ -324,16 +339,9 @@ Utils.change_actor_attr = function(inst, attr_str, new_value)
     if type(new_value) == "boolean" then
         actor_attr_table[inst.id][attr_str] = new_value
     else
-        actor_attr_table[inst.id][attr_str] = new_value - inst[attr_str]
+        actor_attr_table[inst.id][attr_str] = new_value - inst[attr_str] + (actor_attr_table[inst.id][attr_str] or 0)
     end
     inst[attr_str] = new_value
-end
-Utils.change_actor_attr_func = function(inst, attr_str, new_value)
-    if actor_attr_table[inst.id] == nil then
-        actor_attr_table[inst.id] = {}
-    end
-    actor_attr_table[inst.id][attr_str] = new_value
-    inst[attr_str] = new_value(inst[attr_str])
 end
 Utils.restore_actor_attr = function(inst, attr_str)
     actor_attr_table[inst.id][attr_str] = nil
@@ -341,11 +349,9 @@ Utils.restore_actor_attr = function(inst, attr_str)
 end
 gm.post_script_hook(gm.constants.recalculate_stats, function(self, other, result, args)
     if actor_attr_table[self.id] then
-        for str,value in pairs(actor_attr_table[self.id]) do
+        for str, value in pairs(actor_attr_table[self.id]) do
             if type(value) == "boolean" then
                 self[str] = value
-            elseif type(value) == "function" then
-                self[str] = value(self[str])
             else
                 self[str] = self[str] + value
             end
@@ -369,7 +375,29 @@ Utils.table_get_length = function(table)
     end
     return result
 end
-Utils.create_packet = function (onReceived, type_table)
+Utils.packet_type = {
+    not_forward = 0,
+    forward = 1
+}
+Utils.param_type = {
+    Instance = 0,
+    number = 1,
+    array = 2,
+    table = 3,
+    int = 4,
+    half = 5
+}
+-- May need use this to code cleanup
+-- It seems like _mod_net_message_getUniqueID's unique id is only unique within each mod
+--[[
+local test = nil
+Initialize(function ()
+    test = Utils.create_packet(function (player, slot_index)
+        log.info(player.m_id, slot_index)
+    end,{Utils.param_type.number})
+end)
+]]
+Utils.create_packet = function(onReceived, type_table)
     local sync_packet = Packet.new()
     sync_packet:onReceived(function(message, player)
         local num = message:read_byte()
@@ -383,45 +411,63 @@ Utils.create_packet = function (onReceived, type_table)
         local params_table = {}
         for i = 1, num do
             local value
-            if type_table[i] == "Instance" then
+            if type_table[i] == Utils.param_type.Instance then
                 value = message:read_instance().value
                 table.insert(params_table, value)
-            elseif type_table[i] == "table" then
+            elseif type_table[i] == Utils.param_type.table then
                 value = message:read_string()
                 table.insert(params_table, Utils.simple_string_to_table(value))
-            elseif type_table[i] == "array" then
+            elseif type_table[i] == Utils.param_type.array then
                 value = message:read_string()
                 table.insert(params_table, Utils.create_array_from_table(Utils.simple_string_to_table(value)))
-            else
+            elseif type_table[i] == Utils.param_type.int then
+                value = message:read_int()
+                table.insert(params_table, value)
+            elseif type_table[i] == Utils.param_type.half then
+                value = message:read_half()
+                table.insert(params_table, value)
+            elseif type_table[i] == Utils.param_type.number then
                 value = message:read_string()
                 table.insert(params_table, Utils.parse_string_to_value(value))
+            else
+                log.error("Can't handle", type_table[i])
             end
             if type then
-                if type_table[i] == "Instance" then
+                if type_table[i] == Utils.param_type.Instance then
                     sync_message:write_instance(value)
+                elseif type_table[i] == Utils.param_type.int then
+                    sync_message:write_int(value)
+                elseif type_table[i] == Utils.param_type.half then
+                    message:write_half(value)
                 else
                     sync_message:write_string(value)
                 end
             end
         end
-        onReceived(player,table.unpack(params_table))
+        onReceived(player, table.unpack(params_table))
         if type then
             sync_message:send_exclude(player)
         end
     end)
-    return function (type, ...)
+    return function(type, ...)
         local sync_message = sync_packet:message_begin()
         sync_message:write_byte(select("#", ...))
         sync_message:write_byte(type)
         for i, v in ipairs({...}) do
-            if type_table[i] == "Instance" then
+            if type_table[i] == Utils.param_type.Instance then
                 sync_message:write_instance(v)
-            elseif type_table[i] == "table" then
+            elseif type_table[i] == Utils.param_type.table then
                 sync_message:write_string(Utils.simple_table_to_string(v))
-            elseif type_table[i] == "array" then
+            elseif type_table[i] == Utils.param_type.array then
                 sync_message:write_string(Utils.simple_table_to_string(Utils.create_table_from_array(v)))
-            else
+            elseif type_table[i] == Utils.param_type.int then
+                sync_message:write_int(v)
+            elseif type_table[i] == Utils.param_type.half then
+                sync_message:write_half(v)
+            elseif type_table[i] == Utils.param_type.number then
                 sync_message:write_string(tostring(v))
+            else
+                log.error("Can't handle", type_table[i])
             end
         end
         return sync_message
@@ -478,92 +524,6 @@ local function init()
             parse_string()
         end
     end)
-    local sync_call_packet = Packet.new()
-    sync_call_packet:onReceived(function(message, player)
-        local script_str = message:read_string()
-        if not sync_call_func_whitelist[script_str] then
-            log.error("try to call a function that isn't in the whitelist")
-        end
-        local target = message:read_byte()
-        local num = message:read_int()
-        local params = {}
-        local function parse_string(sync_message)
-            for _ = 1, num do
-                local type = message:read_string()
-                if type == nil then
-                    break
-                end
-                if sync_message then
-                    sync_message:write_string(type)
-                end
-                if type == "inst" then
-                    local val = message:read_instance().value
-                    table.insert(params, val)
-                    if sync_message then
-                        sync_message:write_instance(val)
-                    end
-                else
-                    local val = message:read_string()
-                    table.insert(params, Utils.parse_string_to_value(val))
-                    if sync_message then
-                        sync_message:write_string(val)
-                    end
-                end
-            end
-        end
-        if Utils.get_net_type() == Net.TYPE.host and target == 1 then
-            local sync_message = sync_call_packet:message_begin()
-            sync_message:write_instance(script_str)
-            sync_message:write_byte(target)
-            sync_message:write_int(num)
-            parse_string(sync_message)
-            sync_message:send_exclude(player)
-        else
-            parse_string()
-        end
-        gm.call(script_str, table.unpack(params))
-    end)
-    Utils.sync_call = function(script_str, target, ...)
-        local function create_message(target_, ...)
-            local sync_message = sync_call_packet:message_begin()
-            sync_message:write_string(script_str)
-            sync_message:write_byte(target_)
-            sync_message:write_int(select("#", ...))
-            for _, param in ipairs({...}) do
-                if Instance.is(param) then
-                    sync_message:write_string("inst")
-                    sync_message:write_instance(param)
-                else
-                    sync_message:write_string("num")
-                    sync_message:write_string(tostring(param))
-                end
-            end
-            return sync_message
-        end
-        if target == "host" then
-            if Utils.get_net_type() ~= Net.TYPE.client then
-                gm.call(script_str, ...)
-            else
-                local message = create_message(0, ...)
-                message:send_to_host()
-            end
-        elseif target == "all" then
-            gm.call(script_str, ...)
-            if Utils.get_net_type() == Net.TYPE.client then
-                local message = create_message(1, ...)
-                message:send_to_host()
-            elseif Utils.get_net_type() == Net.TYPE.host then
-                local message = create_message(1, ...)
-                message:send_to_all()
-            end
-        elseif target == "client_and_host" then
-            gm.call(script_str, ...)
-            if Utils.get_net_type() == Net.TYPE.client then
-                local message = create_message(0, ...)
-                message:send_to_host()
-            end
-        end
-    end
     Utils.sync_instance_send = function(inst, table_num, sync_table)
         local sync_message = sync_instance_packet:message_begin()
         if not gm.instance_exists(inst.id) then

@@ -23,17 +23,6 @@ SkillModifier.get_random_modifier = function()
         end
     end
 end
-SkillModifier.change_attr = function(skill, attr_str, modifier_data, new_value)
-    if modifier_data["skills_attr"] == nil then
-        modifier_data["skills_attr"] = {}
-    end
-    if type(new_value) == "boolean" then
-        modifier_data["skills_attr"][attr_str] = new_value
-    else
-        modifier_data["skills_attr"][attr_str] = new_value - skill[attr_str]
-    end
-    skill[attr_str] = new_value
-end
 SkillModifier.change_attr_func = function(skill, attr_str, modifier_data, new_value)
     if modifier_data["skills_attr"] == nil then
         modifier_data["skills_attr"] = {}
@@ -48,7 +37,7 @@ end
 SkillModifier.get_modifier_num = function(skill, modifier_name)
     local stack = 0
     if skill.ctm_arr_modifiers ~= nil then
-        if type(skill) == table then
+        if type(skill) == "table" then
             for _, modifier_data in ipairs(skill.ctm_arr_modifiers) do
                 if modifier_data[1] == modifier_name then
                     stack = stack + 1
@@ -121,18 +110,18 @@ SkillModifier.add_modifier_internal = function(skill, modifier_name, ...)
         gm.array_push(modifier, select(i, ...))
     end
     gm.array_push(skill.ctm_arr_modifiers, modifier)
-    modifiers_add_func[modifier_name](skill, SkillModifier.get_and_create_modifier_data(skill), ...)
+    modifiers_add_func[modifier_name](skill, SkillModifier.get_and_create_modifier_data(skill), gm.array_length(skill.ctm_arr_modifiers) - 1, ...)
 end
 SkillModifier.remove_modifier = function(skill, modifier_index, modifier_name)
     if modifiers_remove_func[modifier_name] then
-        modifiers_remove_func[modifier_name](skill, skills_data[memory.get_usertype_pointer(skill)][modifier_index])
+        modifiers_remove_func[modifier_name](skill, skills_data[memory.get_usertype_pointer(skill)][modifier_index], modifier_index)
     end
     skills_data[memory.get_usertype_pointer(skill)][modifier_index] = nil
 end
 SkillModifier.register_modifier = function(modifier_name, weight, random_stack_check, add_func, remove_func, info_func,
     params_func)
     if modifiers_add_func[modifier_name] ~= nil then
-        log.warn("Seems some modifiers have the same name", modifier_name)
+        log.warning("Seems some modifiers have the same name", modifier_name)
     end
     modifiers_weight[modifier_name] = weight or 500
     total_weight = total_weight + modifiers_weight[modifier_name]

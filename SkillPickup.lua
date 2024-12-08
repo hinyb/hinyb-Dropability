@@ -63,12 +63,20 @@ local activate_skill
 local set_skill = function(player, interactable)
     gm.actor_skill_set(player, interactable.slot_index, interactable.skill_id)
     local skill = gm.array_get(player.skills, interactable.slot_index).active_skill
+    if interactable.stock then
+        skill.stock = interactable.stock
+        skill.skill_recalculate_stats(skill, skill)
+    end
+    --[[
     local diff_check_table = Utils.get_skill_diff_check_table()
     for k, v in pairs(diff_check_table) do
         if interactable[k] ~= nil then
             skill[k] = interactable[k]
         end
     end
+    if interactable.disable_stock_regen ~= nil then
+        skill.disable_stock_regen = interactable.disable_stock_regen
+    end]]
     if interactable.ctm_sprite ~= nil then
         skill.ctm_sprite = interactable.ctm_sprite
     end

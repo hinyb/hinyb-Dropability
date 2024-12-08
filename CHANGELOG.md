@@ -1,5 +1,8 @@
 v3.0.6
 * Fix memory leak caused by modifier.
+* Delete unsafe sync_call.
+* Now SkillPickup will sync stock and remove useless sync code.
+* Fix random_skill_blacklist have wrong reload skill_id.
 
 v3.0.5
 * Fix after_image's incorrect proability.
