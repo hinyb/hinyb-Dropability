@@ -1,3 +1,8 @@
+v3.1.0
+* Refactor SkillModifier.
+* Fix incorrect usage of log.error.
+* Fix the skill with flux_slot_index can't drop.
+
 v3.0.7
 * Delete unsafe sync_call.
 * Now SkillPickup will sync stock and remove useless sync code.

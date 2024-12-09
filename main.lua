@@ -17,6 +17,8 @@ require("SkillPickup")
 require("drop_item")
 require("compat_patch")
 require("SkillModifier")
+require("SkillModifierData")
+require("SkillModifierManager")
 
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]
@@ -26,7 +28,7 @@ public_things = {
     end,
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,
-    ["SkillModifier"] = SkillModifier
+    ["SkillModifierManager"] = SkillModifierManager
 } -- Maybe using a wrong way
 require("./envy_setup")
 
@@ -49,7 +51,7 @@ gui.add_always_draw_imgui(function()
                         end
                     else
                         local skill = Utils.find_skill_with_localized(tooltip, player)
-                        if skill.skill_id ~= nil and skill.slot_index ~= nil and skill.skill_id ~= 0 then
+                        if skill and skill.skill_id ~= nil and skill.slot_index ~= nil and skill.skill_id ~= 0 then
                             SkillPickup.drop_skill(player, skill)
                         end
                     end

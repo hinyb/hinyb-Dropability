@@ -30,7 +30,7 @@ SkillPickup.drop_skill = function(player, skill)
     if skill.ctm_arr_modifiers then
         local ctm_arr_modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for i = 0, ctm_arr_modifiers:size() - 1 do
-            SkillModifier.remove_modifier(skill, i + 1, ctm_arr_modifiers:get(i):get(0))
+            SkillModifierManager.remove_modifier(skill, ctm_arr_modifiers:get(i):get(0), i)
         end
     end
     gm.actor_skill_set(player, skill.slot_index, 0)
@@ -40,6 +40,10 @@ SkillPickup.drop_skill = function(player, skill)
             funcs[i](skill)
         end
     end
+end
+local pre_create_funcs = {}
+SkillPickup.add_pre_create_func = function(fn)
+    pre_create_funcs[#pre_create_funcs + 1] = fn
 end
 local function setupSkill(target, skill_params)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
@@ -88,7 +92,7 @@ local set_skill = function(player, interactable)
             for j = 1, modifier:size() - 1 do
                 table.insert(modifier_args, modifier:get(j))
             end
-            SkillModifier.add_modifier_internal(skill, modifier:get(0), table.unpack(modifier_args))
+            SkillModifierManager.add_modifier(skill, modifier:get(0), table.unpack(modifier_args))
         end
     end
     gm.instance_destroy(interactable.id)
@@ -188,6 +192,9 @@ local function init()
         pick_funcs = {}
         if Utils.get_net_type() == Net.TYPE.single then
             SkillPickup.skill_create = function(x, y, skill_params)
+                for i = 1, #pre_create_funcs do
+                    pre_create_funcs[i](skill_params)
+                end
                 local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
                 setupSkill(skill, skill_params)
             end
@@ -196,6 +203,9 @@ local function init()
             end
         elseif Utils.get_net_type() == Net.TYPE.host then
             SkillPickup.skill_create = function(x, y, skill_params)
+                for i = 1, #pre_create_funcs do
+                    pre_create_funcs[i](skill_params)
+                end
                 drop_skill(x, y, skill_params)
             end
             activate_skill = function(Player, Interactable)
@@ -205,6 +215,9 @@ local function init()
             end
         else
             SkillPickup.skill_create = function(x, y, skill_params)
+                for i = 1, #pre_create_funcs do
+                    pre_create_funcs[i](skill_params)
+                end
                 local sync_message = drop_skill_send(skill_params)
                 sync_message:send_to_host()
             end

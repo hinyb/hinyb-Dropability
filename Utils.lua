@@ -35,7 +35,7 @@ Utils.find_instance_with_m_id = function(object_index, m_id)
             return inst
         end
     end
-    log.error("Can't find instance", object_index, "with m_id", m_id)
+    log.error("Can't find instance"..object_index.."with m_id"..m_id, 2)
 end
 Utils.empty_skill_num = 0
 Utils.check_asset_with_name = function(namespace, identifier)
@@ -138,10 +138,10 @@ Utils.get_use_delay = function(skill_id)
     local skill = Class.SKILL:get(skill_id)
     return skill:get(14)
 end
-Utils.warp_skill = function(skill_id)
+Utils.wrap_skill = function(skill_id)
     local skill = Class.SKILL:get(skill_id)
     if skill == nil or type(skill) == "number" then
-        log.error("Can't get warp skill with given skill_id" .. tostring(skill))
+        log.error("Can't get wrap skill with given skill_id" .. tostring(skill))
     end
     return {
         skill_id = skill_id,
@@ -244,7 +244,7 @@ Utils.check_table_is_array = function(table)
 end
 Utils.simple_table_to_string = function(table)
     if type(table) ~= "table" then
-        log.error("param must be table")
+        log.error("param must be table", 2)
         return "{}"
     end
     local result = "{"
@@ -271,7 +271,7 @@ Utils.simple_table_to_string = function(table)
 end
 Utils.simple_string_to_table = function(string)
     if type(string) ~= "string" then
-        log.error("param must be string")
+        log.error("param must be string", 2)
         return {}
     end
     local f, err = load("return " .. string)
@@ -292,7 +292,7 @@ local function tobool(str)
 end
 Utils.create_array_from_table = function(table)
     if not Utils.check_table_is_array(table) then
-        log.error("Can't create an array from table")
+        log.error("Can't create an array from table",2)
     end
     local res = gm.array_create(#table, 0)
     for i = 1, #table do
@@ -331,33 +331,6 @@ Utils.parse_string_to_value = function(str)
     end
     return tonumber(str) or str
 end
-local actor_attr_table = {}
-Utils.change_actor_attr = function(inst, attr_str, new_value)
-    if actor_attr_table[inst.id] == nil then
-        actor_attr_table[inst.id] = {}
-    end
-    if type(new_value) == "boolean" then
-        actor_attr_table[inst.id][attr_str] = new_value
-    else
-        actor_attr_table[inst.id][attr_str] = new_value - inst[attr_str] + (actor_attr_table[inst.id][attr_str] or 0)
-    end
-    inst[attr_str] = new_value
-end
-Utils.restore_actor_attr = function(inst, attr_str)
-    actor_attr_table[inst.id][attr_str] = nil
-    gm.call("gml_Script_recalculate_stats", inst, inst)
-end
-gm.post_script_hook(gm.constants.recalculate_stats, function(self, other, result, args)
-    if actor_attr_table[self.id] then
-        for str, value in pairs(actor_attr_table[self.id]) do
-            if type(value) == "boolean" then
-                self[str] = value
-            else
-                self[str] = self[str] + value
-            end
-        end
-    end
-end)
 local handy_skill_list = {
     [39] = 0,
     [43] = 1,
@@ -385,25 +358,22 @@ Utils.param_type = {
     array = 2,
     table = 3,
     int = 4,
-    half = 5
+    half = 5,
+    string = 6
 }
 -- May need use this to code cleanup
 -- It seems like _mod_net_message_getUniqueID's unique id is only unique within each mod
---[[
-local test = nil
-Initialize(function ()
-    test = Utils.create_packet(function (player, slot_index)
-        log.info(player.m_id, slot_index)
-    end,{Utils.param_type.number})
-end)
-]]
+-- Be careful this function should use in Initialize.
+---@param onReceived function(player(Wrapped, host only), ...) The function will be called when packet receive.
+---@param type_table table(Utils.param_type) The table of params' types.
+---@return function(Utils.packet_type, ...)  
 Utils.create_packet = function(onReceived, type_table)
     local sync_packet = Packet.new()
     sync_packet:onReceived(function(message, player)
         local num = message:read_byte()
         local type = message:read_byte()
         local sync_message
-        if type then
+        if type == Utils.packet_type.forward then
             sync_message = sync_packet:message_begin()
             sync_message:write_byte(num)
             sync_message:write_byte(0)
@@ -429,10 +399,14 @@ Utils.create_packet = function(onReceived, type_table)
             elseif type_table[i] == Utils.param_type.number then
                 value = message:read_string()
                 table.insert(params_table, Utils.parse_string_to_value(value))
+            elseif type_table[i] == Utils.param_type.string then
+                value = message:read_string()
+                log.info(i,value)
+                table.insert(params_table, value)
             else
-                log.error("Can't handle", type_table[i])
+                log.error("Can't handle"..type_table[i])
             end
-            if type then
+            if type == Utils.packet_type.forward then
                 if type_table[i] == Utils.param_type.Instance then
                     sync_message:write_instance(value)
                 elseif type_table[i] == Utils.param_type.int then
@@ -445,7 +419,7 @@ Utils.create_packet = function(onReceived, type_table)
             end
         end
         onReceived(player, table.unpack(params_table))
-        if type then
+        if type == Utils.packet_type.forward then
             sync_message:send_exclude(player)
         end
     end)
@@ -466,8 +440,11 @@ Utils.create_packet = function(onReceived, type_table)
                 sync_message:write_half(v)
             elseif type_table[i] == Utils.param_type.number then
                 sync_message:write_string(tostring(v))
+            elseif type_table[i] == Utils.param_type.string then
+                log.info("string", v)
+                sync_message:write_string(v)
             else
-                log.error("Can't handle", type_table[i])
+                log.error("Can't handle"..type_table[i])
             end
         end
         return sync_message
@@ -572,7 +549,6 @@ gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     ResourceManager = gm.variable_global_get("ResourceManager_object")
     Utils.empty_skill_num = 0
     alarms = {}
-    actor_attr_table = {}
 end)
 gm.post_script_hook(gm.constants.__input_system_tick, function()
     local current_frame = gm.variable_global_get("_current_frame")
