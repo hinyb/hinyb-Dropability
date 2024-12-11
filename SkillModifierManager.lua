@@ -101,23 +101,6 @@ SkillModifierManager.get_random_modifier_name_with_check = function(skill)
     return random_modifier.check_func(skill) and random_modifier_name or
                SkillModifierManager.get_random_modifier_name_with_check(skill)
 end
-memory.dynamic_hook_mid("hud_draw_skill_info", {"rax", "rsp+200h-188h"}, {"RValue*", "RValue*"}, 0, {},
-    gm.get_script_function_address(gm.constants.hud_draw_skill_info):add(836), function(args)
-        if args[2].value.ctm_arr_modifiers ~= nil then
-            local modifiers = Array.wrap(args[2].value.ctm_arr_modifiers)
-            for i = 0, modifiers:size() - 1 do
-                local modifier = modifiers:get(i)
-                local modifier_name = modifier:get(0)
-                local info_func = SkillModifierManager.get_modifier(modifier_name).info_func
-                local modifier_args = {}
-                for j = 1, modifier:size() - 1 do
-                    modifier_args[j] = modifier:get(j)
-                end
-                local data = SkillModifierManager.get_or_create_modifier_data(args[2].value, i)
-                args[1].value = info_func(args[1].value, data, table.unpack(modifier_args))
-            end
-        end
-    end)
 gm.post_script_hook(gm.constants.run_destroy, function(self, other, result, args)
     skills_data = {}
 end)

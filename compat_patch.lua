@@ -15,7 +15,7 @@ end)
 gm.post_script_hook(gm.constants._survivor_sniper_find_drone, function(self, other, result, args)
     if result.value == -4 then
         local player = args[1].value
-        local drone = gm.instance_create(player.x,player.y,gm.constants.oSniperDrone)
+        local drone = gm.instance_create(player.x, player.y, gm.constants.oSniperDrone)
         drone.master = player.id
         result.value = drone
     end
@@ -117,3 +117,30 @@ memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstan
         end
         args[1]:set(-1) -- to override original, hope this may not break something
     end)
+
+-- For monsterShamGX
+gm.pre_script_hook(gm.constants.find_target, function(self, other, result, args)
+    if self.team == 1 then
+        result.value = 0
+        local list = gm.ds_list_create();
+        gm.collision_circle_list(self.x, self.y, self.target_range, gm.constants.oActorTargetEnemy, false, false, list,
+            true);
+        for i = 0, gm.ds_list_size(list) - 1 do
+            local target = gm.ds_list_find_value(list, i)
+            if target.parent.team ~= self.team then
+                self.target = target
+                break
+            end
+        end
+        gm.ds_list_destroy(list);
+        return false
+    end
+end)
+gm.post_script_hook(100561, function(self, other, result, args)
+    if math.abs(self.image_index - 6) <= 1e-5 then
+        local mobs = Array.wrap(args[1].value.totem_spawn_id)
+        for i = 0, mobs:size() - 1 do
+            mobs:get(i).team = args[1].value.team
+        end
+    end
+end)

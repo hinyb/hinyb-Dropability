@@ -226,9 +226,26 @@ Utils.log_information = function(info, offset)
     end
     log.info(prefix, info)
     if type(info) == "table" then
-        for k, v in pairs(table) do
+        for k, v in pairs(info) do
             log.info(prefix, k)
             Utils.log_information(v, offset + 1)
+        end
+    end
+    if gm.is_struct(info) then
+        local names = gm.struct_get_names(info)
+        if #names ~= 0 then
+            for j, name in ipairs(names) do
+                Utils.log_information(name .. " = ", offset + 1)
+                Utils.log_information(gm.variable_struct_get(info, name), offset + 1)
+            end
+        end
+    end
+    if gm.is_array(info) then
+        local size = gm.array_length(info)
+        for i = 0, size - 1 do
+            local val = gm.array_get(info, i)
+            Utils.log_information("[" .. i .. "]", offset + 1)
+            Utils.log_information(val, offset + 1)
         end
     end
 end

@@ -19,6 +19,7 @@ require("compat_patch")
 require("SkillModifier")
 require("SkillModifierData")
 require("SkillModifierManager")
+require("Dynamic_calls")
 
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]
@@ -28,7 +29,8 @@ public_things = {
     end,
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,
-    ["SkillModifierManager"] = SkillModifierManager
+    ["SkillModifierManager"] = SkillModifierManager,
+    ["Dynamic_calls"] = Dynamic_calls
 } -- Maybe using a wrong way
 require("./envy_setup")
 

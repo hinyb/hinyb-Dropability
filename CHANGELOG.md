@@ -1,3 +1,8 @@
+v3.1.1
+* Fix monsterShamGX's summons behaving weirdly. 
+    * However, now they are unable to be attacked, I think it is hard to resolve and they are too weak, so I decided to keep it as is.
+* Add some functions for SkillChest.
+
 v3.1.0
 * Refactor SkillModifier.
 * Fix incorrect usage of log.error.
