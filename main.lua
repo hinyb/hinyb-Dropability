@@ -20,6 +20,7 @@ require("SkillModifier")
 require("SkillModifierData")
 require("SkillModifierManager")
 require("Dynamic_calls")
+require("Instance_ext")
 
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]
@@ -30,7 +31,11 @@ public_things = {
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,
     ["SkillModifierManager"] = SkillModifierManager,
-    ["Dynamic_calls"] = Dynamic_calls
+    ["Dynamic_calls"] = Dynamic_calls,
+    ["Instance_ext"] = Instance_ext,
+    ["set_compat"] = function (inst)
+        return set_compat(inst)
+    end
 } -- Maybe using a wrong way
 require("./envy_setup")
 

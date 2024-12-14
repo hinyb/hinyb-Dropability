@@ -20,7 +20,7 @@ function SkillModifierData:add_skill_attr_change(attr_str, fn)
     if self.skill[attr_str] == nil then
         log.error("Try to change a non-existent attribute", 2)
     else
-        self.skill[attr_str] = fn(self.skill[attr_str])
+        self.skill[attr_str] = fn(self.skill[attr_str], self)
         self.skill_attr_changes[attr_str] = self.skill_attr_changes[attr_str] or {}
         table.insert(self.skill_attr_changes[attr_str], fn)
     end

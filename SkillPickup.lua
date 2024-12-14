@@ -1,31 +1,31 @@
 SkillPickup = {}
+-- May need to refactor
 SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
 local drop_funcs = {}
-SkillPickup.add_local_drop_callback = function(skill, fn)
-    local address = memory.get_usertype_pointer(skill)
+SkillPickup.add_local_drop_callback = function(inst, fn)
+    local address = memory.get_usertype_pointer(inst)
     if drop_funcs[address] == nil then
         drop_funcs[address] = {}
     end
     table.insert(drop_funcs[address], fn)
 end
-SkillPickup.remove_local_drop_callback = function(skill)
-    drop_funcs[memory.get_usertype_pointer(skill)] = nil
+SkillPickup.remove_local_drop_callback = function(inst)
+    drop_funcs[memory.get_usertype_pointer(inst)] = nil
 end
 local pick_funcs = {}
-SkillPickup.add_local_pick_callback = function(skill, fn)
-    local address = memory.get_usertype_pointer(skill)
+SkillPickup.add_local_pick_callback = function(inst, fn)
+    local address = memory.get_usertype_pointer(inst)
     if pick_funcs[address] == nil then
         pick_funcs[address] = {}
     end
     table.insert(pick_funcs[address], fn)
 end
-SkillPickup.remove_local_pick_callback = function(skill)
-    pick_funcs[memory.get_usertype_pointer(skill)] = nil
+SkillPickup.remove_local_pick_callback = function(inst)
+    pick_funcs[memory.get_usertype_pointer(inst)] = nil
 end
 SkillPickup.drop_skill = function(player, skill)
-    Utils.empty_skill_num = Utils.empty_skill_num + 1
     local skill_params = Utils.get_active_skill_diff(skill)
     if skill.ctm_arr_modifiers then
         local ctm_arr_modifiers = Array.wrap(skill.ctm_arr_modifiers)
@@ -35,9 +35,10 @@ SkillPickup.drop_skill = function(player, skill)
     end
     gm.actor_skill_set(player, skill.slot_index, 0)
     SkillPickup.skill_create(player.x, player.y, skill_params)
-    for _, funcs in pairs(drop_funcs) do
-        for i = 1, #funcs do
-            funcs[i](skill)
+    local address = memory.get_usertype_pointer(player)
+    if drop_funcs[address] then
+        for i = 1, #drop_funcs[address] do
+            drop_funcs[address][i](player)
         end
     end
 end
@@ -101,17 +102,18 @@ local function init()
     local skillPickup = Interactable.new("hinyb", "skillPickup")
     skillPickup.obj_sprite = 114
     skillPickup:add_callback("onActivate", function(Interactable, Player)
-        if Player.value.is_local then
+        if Player.value.object_index == gm.constants.oP and Player.value.is_local or Player.value.object_index ~=
+            gm.constants.oP and Utils.get_net_type() ~= Net.TYPE.client then
             if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
                 local skill = gm.array_get(Player.value.skills, Interactable.value.slot_index).active_skill
                 if skill.skill_id ~= 0 then
                     SkillPickup.drop_skill(Player.value, skill)
                 end
-                Utils.empty_skill_num = Utils.empty_skill_num - 1
                 activate_skill(Player.value, Interactable.value)
-                for _, funcs in pairs(pick_funcs) do
-                    for i = 1, #funcs do
-                        funcs[i](skill)
+                local address = memory.get_usertype_pointer(Player.value)
+                if pick_funcs[address] then
+                    for i = 1, #pick_funcs[address] do
+                        pick_funcs[address][i](Player.value)
                     end
                 end
             end

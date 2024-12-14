@@ -35,9 +35,18 @@ Utils.find_instance_with_m_id = function(object_index, m_id)
             return inst
         end
     end
-    log.error("Can't find instance"..object_index.."with m_id"..m_id, 2)
+    log.error("Can't find instance" .. object_index .. "with m_id" .. m_id, 2)
 end
-Utils.empty_skill_num = 0
+Utils.get_empty_skill_num = function(inst)
+    local result = 0
+    local skill_arr = Array.wrap(inst.skills)
+    for i = 1, skill_arr:size() do
+        if skill_arr:get(i - 1).active_skill.skill_id == 0 then
+            result = result + 1
+        end
+    end
+    return result
+end
 Utils.check_asset_with_name = function(namespace, identifier)
     local lookup = ResourceManager.__namespacedAssetLookup
     if gm.variable_instance_exists(lookup, namespace) and gm.variable_instance_exists(lookup[namespace], identifier) then
@@ -85,11 +94,11 @@ Utils.random_skill_id = function(random_seed)
     end
 end
 Utils.get_gaussian_random_within = function(min, max, mu, sigma)
-    local random = Utils.get_gaussian_random(mu,sigma)
+    local random = Utils.get_gaussian_random(mu, sigma)
     if (min == nil or random >= min) and (max == nil or random <= max) then
         return random
     else
-        return Utils.get_gaussian_random(mu,sigma)
+        return Utils.get_gaussian_random(mu, sigma)
     end
 end
 Utils.get_gaussian_random = function(mu, sigma)
@@ -309,7 +318,7 @@ local function tobool(str)
 end
 Utils.create_array_from_table = function(table)
     if not Utils.check_table_is_array(table) then
-        log.error("Can't create an array from table",2)
+        log.error("Can't create an array from table", 2)
     end
     local res = gm.array_create(#table, 0)
     for i = 1, #table do
@@ -418,10 +427,9 @@ Utils.create_packet = function(onReceived, type_table)
                 table.insert(params_table, Utils.parse_string_to_value(value))
             elseif type_table[i] == Utils.param_type.string then
                 value = message:read_string()
-                log.info(i,value)
                 table.insert(params_table, value)
             else
-                log.error("Can't handle"..type_table[i])
+                log.error("Can't handle" .. type_table[i])
             end
             if type == Utils.packet_type.forward then
                 if type_table[i] == Utils.param_type.Instance then
@@ -458,10 +466,9 @@ Utils.create_packet = function(onReceived, type_table)
             elseif type_table[i] == Utils.param_type.number then
                 sync_message:write_string(tostring(v))
             elseif type_table[i] == Utils.param_type.string then
-                log.info("string", v)
                 sync_message:write_string(v)
             else
-                log.error("Can't handle"..type_table[i])
+                log.error("Can't handle" .. type_table[i])
             end
         end
         return sync_message
@@ -560,11 +567,17 @@ Utils.add_alarm = function(func, time, ...)
         end
     end
 end
+Utils.is_custom_object = function(object_index)
+    local is_customobject = gm.variable_global_get("is_customobject")
+    return gm.ds_map_find_value(is_customobject, object_index)
+end
+Utils.clear_alarms = function()
+    alarms = {}
+end
 Initialize(init)
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     net_type = Net.get_type()
     ResourceManager = gm.variable_global_get("ResourceManager_object")
-    Utils.empty_skill_num = 0
     alarms = {}
 end)
 gm.post_script_hook(gm.constants.__input_system_tick, function()

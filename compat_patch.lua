@@ -6,6 +6,9 @@ gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     miner_heat_bar_list = {}
 end)
 gm.pre_script_hook(gm.constants.actor_skill_set, function(self, other, result, args)
+    if type(args[1].value) == "number" then
+        args[1].value = gm.CInstance.instance_id_to_CInstance[args[1].value]
+    end
     local origin_skill = gm.array_get(args[1].value.skills, args[2].value).active_skill
     if origin_skill.skill_id == 68 or origin_skill.skill_id == 69 then
         local drone = gm.call("gml_Script__survivor_sniper_find_drone", args[1].value, args[1].value, args[1].value)
@@ -33,14 +36,18 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
         if result.value == -4 or result.value == 0 then
             local player = gm.CInstance.instance_id_to_CInstance[args[1].value]
             if not player.dead and player.object_index == gm.constants.oP then
-                miner_heat_bar_flag = true
                 gm.call("gml_Script__survivor_miner_create_heat_bar", player, player)
                 miner_heat_bar_list[self.id] = true
-                miner_heat_bar_flag = false
                 result.value = gm.call("gml_Script__survivor_miner_find_heat_bar", player, player, args[1].value)
             end
         end
     end
+end)
+gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
+    miner_heat_bar_flag = true
+end)
+gm.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
+    miner_heat_bar_flag = false
 end)
 gm.post_code_execute("gml_Object_oP_Step_2", function(self, other)
     if self.class ~= 6 and miner_heat_bar_list[self.id] and self.activity_type ~= 4.0 then
@@ -58,13 +65,17 @@ gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self
     if not drifter_scrap_bar_flag then
         if result.value == -4 or result.value == 0 then
             if self.dead ~= 1 then
-                drifter_scrap_bar_flag = true
                 gm.call("gml_Script__survivor_drifter_create_scrap_bar", args[1].value, args[1].value)
                 drifter_scarp_bar_list[self.id] = true
-                drifter_scrap_bar_flag = false
             end
         end
     end
+end)
+gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
+    drifter_scrap_bar_flag = true
+end)
+gm.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
+    drifter_scrap_bar_flag = false
 end)
 memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h+18h]"}, {"RValue*", "CInstance*"}, 0,
     {}, gm.get_object_function_address("gml_Object_oDrifterRec_Collision_oP"):add(480), function(args)
@@ -84,7 +95,7 @@ local function nilcreate(target, member, num)
         gm.array_set(target[member .. "_half"], 1, target[member])
     end
 end
-gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
+set_compat = function(self)
     defalut_nil(self, "charged")
     defalut_nil(self, "_miner_charged_elder_kill_count")
     defalut_nil(self, "sniper_bonus")
@@ -100,7 +111,17 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     nilcreate(self, "sprite_jump_peak", 3)
     nilcreate(self, "sprite_jump", 3)
     nilcreate(self, "sprite_walk", 4)
+    self.spat = -4 -- SpitterZ
     self.totem_spawn_id = gm.array_create(0, 0) -- monsterShamGX
+    ---- for monster ----
+    defalut_nil(self, "aiming")
+    defalut_nil(self, "is_local")
+    defalut_nil(self, "pause")
+    defalut_nil(self, "menu_typing")
+    defalut_nil(self, "class")
+end
+gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
+    set_compat(self)
 end)
 -- still have some issues
 memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0, {},
@@ -119,8 +140,14 @@ memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstan
     end)
 
 -- For monsterShamGX
+local sham_list = {
+    [gm.constants.oShamL] = true,
+    [gm.constants.oShamP] = true,
+    [gm.constants.oShamB] = true,
+    [gm.constants.oShamG] = true
+}
 gm.pre_script_hook(gm.constants.find_target, function(self, other, result, args)
-    if self.team == 1 then
+    if self.team == 1 and sham_list[self.object_index] then
         result.value = 0
         local list = gm.ds_list_create();
         gm.collision_circle_list(self.x, self.y, self.target_range, gm.constants.oActorTargetEnemy, false, false, list,
@@ -142,5 +169,25 @@ gm.post_script_hook(100561, function(self, other, result, args)
         for i = 0, mobs:size() - 1 do
             mobs:get(i).team = args[1].value.team
         end
+    end
+end)
+
+---- monster ----
+gm.post_script_hook(gm.constants.set_state_gml_Object_oArtiSnap_Create_0, function(self, other, result, args)
+    if self.team ~= 1.0 then
+        self.is_character_enemy_targettable = 0.0
+        gm.call("gml_Script___actor_update_target_marker", self, self)
+    end
+end)
+gm.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, other, result, args)
+    if self.team ~= 1.0 then
+        self.is_character_enemy_targettable = 0.0
+        gm.call("gml_Script___actor_update_target_marker", self, self)
+    end
+end)
+gm.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, other, result, args)
+    if self.team ~= 1.0 then
+        self.is_character_enemy_targettable = 0.0
+        gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
