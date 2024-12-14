@@ -46,6 +46,7 @@ local pre_create_funcs = {}
 SkillPickup.add_pre_create_func = function(fn)
     pre_create_funcs[#pre_create_funcs + 1] = fn
 end
+SkillPickup.skillPickup_object_index = 0
 local function setupSkill(target, skill_params)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
     target.sprite_index = default_skill:get(4)
@@ -100,6 +101,7 @@ local set_skill = function(player, interactable)
 end
 local function init()
     local skillPickup = Interactable.new("hinyb", "skillPickup")
+    SkillPickup.skillPickup_object_index = skillPickup.value
     skillPickup.obj_sprite = 114
     skillPickup:add_callback("onActivate", function(Interactable, Player)
         if Player.value.object_index == gm.constants.oP and Player.value.is_local or Player.value.object_index ~=

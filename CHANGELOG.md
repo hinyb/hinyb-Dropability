@@ -1,3 +1,6 @@
+v3.1.3
+* A small change for SkillSeeker.
+
 v3.1.2
 * Some changes for SkillSeeker.
 * Fix bar again.
