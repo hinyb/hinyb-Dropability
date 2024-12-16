@@ -3,28 +3,15 @@ SkillPickup = {}
 SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
-local drop_funcs = {}
-SkillPickup.add_local_drop_callback = function(inst, fn)
-    local address = memory.get_usertype_pointer(inst)
-    if drop_funcs[address] == nil then
-        drop_funcs[address] = {}
-    end
-    table.insert(drop_funcs[address], fn)
+local post_local_drop_funcs = {}
+SkillPickup.add_post_local_drop_func = function(fn)
+    post_local_drop_funcs[#post_local_drop_funcs + 1] = fn
 end
-SkillPickup.remove_local_drop_callback = function(inst)
-    drop_funcs[memory.get_usertype_pointer(inst)] = nil
+local post_local_pickup_funcs = {}
+SkillPickup.add_post_local_pickup_func = function(fn)
+    post_local_pickup_funcs[#post_local_pickup_funcs + 1] = fn
 end
-local pick_funcs = {}
-SkillPickup.add_local_pick_callback = function(inst, fn)
-    local address = memory.get_usertype_pointer(inst)
-    if pick_funcs[address] == nil then
-        pick_funcs[address] = {}
-    end
-    table.insert(pick_funcs[address], fn)
-end
-SkillPickup.remove_local_pick_callback = function(inst)
-    pick_funcs[memory.get_usertype_pointer(inst)] = nil
-end
+
 SkillPickup.drop_skill = function(player, skill)
     local skill_params = Utils.get_active_skill_diff(skill)
     if skill.ctm_arr_modifiers then
@@ -35,11 +22,8 @@ SkillPickup.drop_skill = function(player, skill)
     end
     gm.actor_skill_set(player, skill.slot_index, 0)
     SkillPickup.skill_create(player.x, player.y, skill_params)
-    local address = memory.get_usertype_pointer(player)
-    if drop_funcs[address] then
-        for i = 1, #drop_funcs[address] do
-            drop_funcs[address][i](player)
-        end
+    for i = 1, #post_local_drop_funcs do
+        post_local_drop_funcs[i](player, skill.slot_index)
     end
 end
 local pre_create_funcs = {}
@@ -47,7 +31,7 @@ SkillPickup.add_pre_create_func = function(fn)
     pre_create_funcs[#pre_create_funcs + 1] = fn
 end
 SkillPickup.skillPickup_object_index = 0
-local function setupSkill(target, skill_params)
+local function init_skillPickup(target, skill_params)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
     target.sprite_index = default_skill:get(4)
     target.image_index = default_skill:get(5)
@@ -100,22 +84,22 @@ local set_skill = function(player, interactable)
     gm.instance_destroy(interactable.id)
 end
 local function init()
-    local skillPickup = Interactable.new("hinyb", "skillPickup")
+    local skillPickup = Object.new("hinyb", "skillPickup", Object.PARENT.interactable)
     SkillPickup.skillPickup_object_index = skillPickup.value
     skillPickup.obj_sprite = 114
-    skillPickup:add_callback("onActivate", function(Interactable, Player)
-        if Player.value.object_index == gm.constants.oP and Player.value.is_local or Player.value.object_index ~=
-            gm.constants.oP and Utils.get_net_type() ~= Net.TYPE.client then
-            if Interactable.value.skill_id ~= nil and Interactable.value.slot_index ~= nil then
-                local skill = gm.array_get(Player.value.skills, Interactable.value.slot_index).active_skill
-                if skill.skill_id ~= 0 then
-                    SkillPickup.drop_skill(Player.value, skill)
-                end
-                activate_skill(Player.value, Interactable.value)
-                local address = memory.get_usertype_pointer(Player.value)
-                if pick_funcs[address] then
-                    for i = 1, #pick_funcs[address] do
-                        pick_funcs[address][i](Player.value)
+    skillPickup:onStep(function(inst)
+        if inst.active == 1 then
+            local actor = inst.activator.value
+            if actor.object_index == gm.constants.oP and actor.is_local or actor.object_index ~= gm.constants.oP and
+                Utils.get_net_type() ~= Net.TYPE.client then
+                if inst.skill_id ~= nil and inst.slot_index ~= nil then
+                    local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
+                    if skill.skill_id ~= 0 then
+                        SkillPickup.drop_skill(actor, skill)
+                    end
+                    activate_skill(actor, inst.value)
+                    for i = 1, #post_local_pickup_funcs do
+                        post_local_pickup_funcs[i](actor, inst.slot_index)
                     end
                 end
             end
@@ -143,7 +127,7 @@ local function init()
     local drop_skill_send
     local function drop_skill(x, y, skill_params)
         local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
-        setupSkill(skill, skill_params)
+        init_skillPickup(skill, skill_params)
         gm.call("gml_Script_interactable_sync", skill, skill)
         local sync_message = drop_skill_send(skill_params)
         sync_message:write_instance(skill)
@@ -157,7 +141,7 @@ local function init()
         local skill_params = {}
         skill_params.skill_id = skill_id
         skill_params.slot_index = slot_index
-        for i = 1, ext_num do
+        for _ = 1, ext_num do
             local mem = message:read_string()
             local val = message:read_string()
             if mem:sub(1, 4) == "arr_" then
@@ -170,7 +154,7 @@ local function init()
             drop_skill(player.x, player.y, skill_params)
         else
             local skill = message:read_instance().value
-            setupSkill(skill, skill_params)
+            init_skillPickup(skill, skill_params)
         end
     end)
     drop_skill_send = function(skill_params)
@@ -192,15 +176,13 @@ local function init()
         return sync_message
     end
     gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-        drop_funcs = {}
-        pick_funcs = {}
         if Utils.get_net_type() == Net.TYPE.single then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params)
                 end
                 local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
-                setupSkill(skill, skill_params)
+                init_skillPickup(skill, skill_params)
             end
             activate_skill = function(Player, Interactable)
                 set_skill(Player, Interactable)

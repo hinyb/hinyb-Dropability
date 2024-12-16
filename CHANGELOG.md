@@ -1,3 +1,7 @@
+v3.1.4
+* Update to RMT 1.2.0.
+* A small change to Instance_ext
+
 v3.1.3
 * A small change for SkillSeeker.
 

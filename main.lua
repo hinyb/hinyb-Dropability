@@ -1,4 +1,4 @@
-mods["RoRRModdingToolkit-RoRR_Modding_Toolkit"].auto()
+mods["RoRRModdingToolkit-RoRR_Modding_Toolkit"].auto(true)
 
 mods.on_all_mods_loaded(function()
     for k, v in pairs(mods) do
