@@ -9,13 +9,14 @@ function SkillModifierData.new(skill)
     self.pre_activate_funcs = {}
     self.post_activate_funcs = {}
     self.post_remove_stock_funcs = {}
+    self.post_add_stock_funcs = {}
     self.pre_actor_death_after_hippo_funcs = {}
     self.pre_can_activate_funcs = {}
     self.post_can_activate_funcs = {}
     return self
 end
 ---@param attr_str string The name of attribute.
----@param fn function The function(origin_value, modifier_data) The function used to change attribute.
+---@param fn function (origin_value, modifier_data) the function used to change attribute.
 function SkillModifierData:add_skill_attr_change(attr_str, fn)
     if self.skill[attr_str] == nil then
         log.error("Try to change a non-existent attribute", 2)
@@ -34,7 +35,7 @@ function SkillModifierData:restore_skill_attr_change(attr_str)
 end
 -- It maybe useless, can use Toolkit's Instance add_callback replace.
 ---@param attr_str string The name of attribute.
----@param fn function The function(origin_value, modifier_data) The function used to change attribute.
+---@param fn function (origin_value, modifier_data) the function used to change attribute.
 function SkillModifierData:add_parent_attr_change(attr_str, fn)
     if self.skill[attr_str] == nil then
         log.error("Try to change a non-existent attribute", 2)
@@ -49,14 +50,14 @@ function SkillModifierData:restore_parent_attr_change(attr_str)
     gm.call("gml_Script_recalculate_stats", self.skill.parent, self.skill.parent)
 end
 
----@param fn function The function(modifier_data)
-function SkillModifierData:add_pre_activate_callback(fn)
+---@param fn function (modifier_data)
+function SkillModifierData:add_pre_activate_callback(fn) 
     table.insert(self.pre_activate_funcs, fn)
 end
 function SkillModifierData:remove_pre_activate_callback()
     self.pre_activate_funcs = nil
 end
----@param fn function The function(modifier_data)
+---@param fn function (modifier_data)
 function SkillModifierData:add_post_activate_callback(fn)
     table.insert(self.post_activate_funcs, fn)
 end
@@ -64,15 +65,23 @@ function SkillModifierData:remove_post_activate_callback()
     self.post_activate_funcs = nil
 end
 
----@param fn function The function(modifier_data)
+---@param fn function (modifier_data)
 function SkillModifierData:add_post_remove_stock_callback(fn)
-    table.insert(self.post_activate_funcs, fn)
+    table.insert(self.post_remove_stock_funcs, fn)
 end
 function SkillModifierData:remove_post_remove_stock_callback()
-    self.post_activate_funcs = nil
+    self.post_remove_stock_funcs = nil
 end
 
----@param fn function The function(modifier_data)
+---@param fn function (modifier_data)
+function SkillModifierData:add_post_add_stock_callback(fn)
+    table.insert(self.post_add_stock_funcs, fn)
+end
+function SkillModifierData:remove_add_remove_stock_callback()
+    self.post_add_stock_funcs = nil
+end
+
+---@param fn function (modifier_data)
 function SkillModifierData:add_pre_actor_death_after_hippo_callback(fn)
     table.insert(self.pre_actor_death_after_hippo_funcs, fn)
 end
@@ -155,6 +164,18 @@ gm.post_script_hook(gm.constants.skill_activate, function(self, other, result, a
         end
     end
 end)
+gm.post_script_hook(102400, function(self, other, result, args)
+    local skill = memory.resolve_pointer_to_type(memory.get_usertype_pointer(self), "YYObjectBase*")
+    if skill.ctm_arr_modifiers ~= nil then
+        local modifiers = Array.wrap(skill.ctm_arr_modifiers)
+        for j = 0, modifiers:size() - 1 do
+            local data = SkillModifierManager.get_or_create_modifier_data(skill, j)
+            for i = 1, #data.post_add_stock_funcs do
+                data.post_add_stock_funcs[i](data)
+            end
+        end
+    end
+end)
 
 gm.post_script_hook(102401, function(self, other, result, args)
     local skill = memory.resolve_pointer_to_type(memory.get_usertype_pointer(self), "YYObjectBase*")
@@ -216,7 +237,7 @@ gm.post_script_hook(gm.constants.skill_can_activate, function(self, other, resul
     end
 end)
 
-memory.dynamic_hook_mid("hud_draw_skill_info", {"rax", "rsp+200h-188h"}, {"RValue*", "RValue*"}, 0, {},
+memory.dynamic_hook_mid("hud_draw_skill_info", {"rax", "rsp+200h-188h"}, {"RValue*", "RValue*"}, 0,
     gm.get_script_function_address(gm.constants.hud_draw_skill_info):add(836), function(args)
         if args[2].value.ctm_arr_modifiers ~= nil then
             local modifiers = Array.wrap(args[2].value.ctm_arr_modifiers)

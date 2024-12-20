@@ -15,12 +15,13 @@ end)
 require("Utils")
 require("SkillPickup")
 require("drop_item")
-require("compat_patch")
+require("CompatibilityPatch")
 require("SkillModifier")
 require("SkillModifierData")
 require("SkillModifierManager")
 require("Dynamic_calls")
 require("Instance_ext")
+require("GameStyleManager")
 
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]
@@ -33,9 +34,8 @@ public_things = {
     ["SkillModifierManager"] = SkillModifierManager,
     ["Dynamic_calls"] = Dynamic_calls,
     ["Instance_ext"] = Instance_ext,
-    ["set_compat"] = function (inst)
-        return set_compat(inst)
-    end
+    ["CompatibilityPatch"] = CompatibilityPatch,
+    ["GameStyleManager"] = GameStyleManager
 } -- Maybe using a wrong way
 require("./envy_setup")
 
@@ -44,7 +44,6 @@ local tooltip
 gm.post_script_hook(gm.constants.ui_hover_tooltip, function(self, other, result, args)
     tooltip = args[3].value
 end)
-
 gui.add_always_draw_imgui(function()
     if ImGui.IsKeyPressed(params['drop_item_key'], false) then
         local player = Player.get_client().value
@@ -58,7 +57,7 @@ gui.add_always_draw_imgui(function()
                         end
                     else
                         local skill = Utils.find_skill_with_localized(tooltip, player)
-                        if skill and skill.skill_id ~= nil and skill.slot_index ~= nil and skill.skill_id ~= 0 then
+                        if skill and skill.skill_id ~= 0 then
                             SkillPickup.drop_skill(player, skill)
                         end
                     end

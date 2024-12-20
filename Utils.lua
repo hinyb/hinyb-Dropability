@@ -66,6 +66,17 @@ end
 Utils.check_random_skill = function(skill_id)
     return not random_skill_blacklist[skill_id]
 end
+local need_scrap_bar_skill_id_list = {
+    [129] = true,
+    [133] = true,
+    [131] = true,
+    [132] = true,
+    [135] = true,
+    [136] = true
+}
+Utils.is_skill_need_scrap_bar = function (skill_id)
+    return need_scrap_bar_skill_id_list[skill_id] or false
+end
 Utils.LCG_random = function(seed)
     local state = seed or os.time()
     return function(min, max)

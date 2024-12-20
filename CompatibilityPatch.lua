@@ -1,18 +1,16 @@
 local drifter_scarp_bar_list = {}
 local miner_heat_bar_list = {}
-
+CompatibilityPatch = {}
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drifter_scarp_bar_list = {}
     miner_heat_bar_list = {}
 end)
-gm.pre_script_hook(gm.constants.actor_skill_set, function(self, other, result, args)
-    if type(args[1].value) == "number" then
-        args[1].value = gm.CInstance.instance_id_to_CInstance[args[1].value]
-    end
-    local origin_skill = gm.array_get(args[1].value.skills, args[2].value).active_skill
+SkillPickup.add_pre_local_drop_func(function(inst, slot_index)
+    local origin_skill = gm.array_get(inst.skills, slot_index).active_skill
     if origin_skill.skill_id == 68 or origin_skill.skill_id == 69 then
-        local drone = gm.call("gml_Script__survivor_sniper_find_drone", args[1].value, args[1].value, args[1].value)
-        gm.instance_destroy(drone.id)
+        local drone = gm.call("gml_Script__survivor_sniper_find_drone", inst, inst, inst)
+        drone:instance_destroy_sync()
+        gm.instance_destroy(drone)
     end
 end)
 gm.post_script_hook(gm.constants._survivor_sniper_find_drone, function(self, other, result, args)
@@ -78,7 +76,7 @@ gm.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(se
     drifter_scrap_bar_flag = false
 end)
 memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h+18h]"}, {"RValue*", "CInstance*"}, 0,
-    {}, gm.get_object_function_address("gml_Object_oDrifterRec_Collision_oP"):add(480), function(args)
+    gm.get_object_function_address("gml_Object_oDrifterRec_Collision_oP"):add(480), function(args)
         if drifter_scarp_bar_list[args[2].id] then
             args[1].value = args[2].class
         end
@@ -95,7 +93,7 @@ local function nilcreate(target, member, num)
         gm.array_set(target[member .. "_half"], 1, target[member])
     end
 end
-set_compat = function(self)
+CompatibilityPatch.set_compat = function(self)
     defalut_nil(self, "charged")
     defalut_nil(self, "_miner_charged_elder_kill_count")
     defalut_nil(self, "sniper_bonus")
@@ -120,11 +118,18 @@ set_compat = function(self)
     defalut_nil(self, "menu_typing")
     defalut_nil(self, "class")
 end
+CompatibilityPatch.has_scrap_bar = function (actor)
+    if actor.class == 14 or drifter_scarp_bar_list[actor.id] then
+        return true
+    else
+        return false
+    end
+end
 gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
-    set_compat(self)
+    CompatibilityPatch.set_compat(self)
 end)
 -- still have some issues
-memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0, {},
+memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0,
     gm.get_script_function_address(gm.constants.actor_death):add(38162), function(args)
         local skills = args[2].skills
         for i = 0, #skills - 1 do
@@ -191,3 +196,5 @@ gm.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, other, res
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
+
+return CompatibilityPatch

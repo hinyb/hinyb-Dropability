@@ -3,16 +3,40 @@ SkillPickup = {}
 SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
+local pre_local_drop_funcs = {}
+---@param fn function (actor, slot_index)
+SkillPickup.add_pre_local_drop_func = function(fn)
+    pre_local_drop_funcs[#pre_local_drop_funcs + 1] = fn
+end
 local post_local_drop_funcs = {}
+---@param fn function (actor, slot_index)
 SkillPickup.add_post_local_drop_func = function(fn)
     post_local_drop_funcs[#post_local_drop_funcs + 1] = fn
 end
 local post_local_pickup_funcs = {}
+---@param fn function (actor, slot_index)
 SkillPickup.add_post_local_pickup_func = function(fn)
     post_local_pickup_funcs[#post_local_pickup_funcs + 1] = fn
 end
-
+local skill_check_funcs = {}
+---@param fn function (actor, skill) this function used to check if the skill can be dropped or picked up.
+SkillPickup.add_skill_check_func = function(fn)
+    skill_check_funcs[#skill_check_funcs + 1] = fn
+end
+SkillPickup.add_skill_check_func(function (actor, skill)
+    if skill.skill_id == 70 or skill.skill_id == 71 then
+        return false
+    end
+end)
 SkillPickup.drop_skill = function(player, skill)
+    for i = 1, #skill_check_funcs do
+        if skill_check_funcs[i](player, skill) == false then
+            return false
+        end
+    end
+    for i = 1, #pre_local_drop_funcs do
+        pre_local_drop_funcs[i](player, skill.slot_index)
+    end
     local skill_params = Utils.get_active_skill_diff(skill)
     if skill.ctm_arr_modifiers then
         local ctm_arr_modifiers = Array.wrap(skill.ctm_arr_modifiers)
@@ -95,7 +119,9 @@ local function init()
                 if inst.skill_id ~= nil and inst.slot_index ~= nil then
                     local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
                     if skill.skill_id ~= 0 then
-                        SkillPickup.drop_skill(actor, skill)
+                        if SkillPickup.drop_skill(actor, skill) == false then
+                            return false
+                        end
                     end
                     activate_skill(actor, inst.value)
                     for i = 1, #post_local_pickup_funcs do
