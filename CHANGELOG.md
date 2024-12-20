@@ -1,3 +1,6 @@
+v3.1.5
+* Add some functions for SkillChest.
+
 v3.1.4
 * Update to RMT 1.2.0.
 * A small change to Instance_ext

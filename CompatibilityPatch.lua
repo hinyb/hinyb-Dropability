@@ -5,9 +5,8 @@ gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drifter_scarp_bar_list = {}
     miner_heat_bar_list = {}
 end)
-SkillPickup.add_pre_local_drop_func(function(inst, slot_index)
-    local origin_skill = gm.array_get(inst.skills, slot_index).active_skill
-    if origin_skill.skill_id == 68 or origin_skill.skill_id == 69 then
+SkillPickup.add_pre_local_drop_func(function(inst, skill)
+    if skill.skill_id == 68 or skill.skill_id == 69 then
         local drone = gm.call("gml_Script__survivor_sniper_find_drone", inst, inst, inst)
         drone:instance_destroy_sync()
         gm.instance_destroy(drone)

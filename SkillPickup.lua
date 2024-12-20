@@ -4,12 +4,12 @@ SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
 local pre_local_drop_funcs = {}
----@param fn function (actor, slot_index)
+---@param fn function (actor, skill)
 SkillPickup.add_pre_local_drop_func = function(fn)
     pre_local_drop_funcs[#pre_local_drop_funcs + 1] = fn
 end
 local post_local_drop_funcs = {}
----@param fn function (actor, slot_index)
+---@param fn function (actor, skill)
 SkillPickup.add_post_local_drop_func = function(fn)
     post_local_drop_funcs[#post_local_drop_funcs + 1] = fn
 end
@@ -23,6 +23,21 @@ local skill_check_funcs = {}
 SkillPickup.add_skill_check_func = function(fn)
     skill_check_funcs[#skill_check_funcs + 1] = fn
 end
+local skill_override_check_funcs = {}
+---@param fn function (actor, skill) this function used to check if the skill can be overridden.
+SkillPickup.add_skill_override_check_func = function(fn)
+    skill_override_check_funcs[#skill_override_check_funcs + 1] = fn
+end
+SkillPickup.add_skill_override_check_func(function (actor, skill)
+    return skill.id == 0
+end)
+local function skill_cannot_override(actor, skill)
+    for i = 1, #skill_override_check_funcs do
+        if skill_override_check_funcs[i](actor, skill) == false then
+            return false
+        end
+    end
+end
 SkillPickup.add_skill_check_func(function (actor, skill)
     if skill.skill_id == 70 or skill.skill_id == 71 then
         return false
@@ -35,7 +50,7 @@ SkillPickup.drop_skill = function(player, skill)
         end
     end
     for i = 1, #pre_local_drop_funcs do
-        pre_local_drop_funcs[i](player, skill.slot_index)
+        pre_local_drop_funcs[i](player, skill)
     end
     local skill_params = Utils.get_active_skill_diff(skill)
     if skill.ctm_arr_modifiers then
@@ -47,12 +62,17 @@ SkillPickup.drop_skill = function(player, skill)
     gm.actor_skill_set(player, skill.slot_index, 0)
     SkillPickup.skill_create(player.x, player.y, skill_params)
     for i = 1, #post_local_drop_funcs do
-        post_local_drop_funcs[i](player, skill.slot_index)
+        post_local_drop_funcs[i](player, skill)
     end
 end
 local pre_create_funcs = {}
 SkillPickup.add_pre_create_func = function(fn)
     pre_create_funcs[#pre_create_funcs + 1] = fn
+end
+local post_create_funcs = {}
+---@param fn function (skillPickup)
+SkillPickup.add_post_create_func = function(fn)
+    post_create_funcs[#post_create_funcs + 1] = fn
 end
 SkillPickup.skillPickup_object_index = 0
 local function init_skillPickup(target, skill_params)
@@ -71,6 +91,9 @@ local function init_skillPickup(target, skill_params)
                 target.text = Language.translate_token(v)
             end
         end
+    end
+    for i = 1, #post_create_funcs do
+        post_create_funcs[i](target)
     end
 end
 local activate_skill
@@ -118,7 +141,7 @@ local function init()
                 Utils.get_net_type() ~= Net.TYPE.client then
                 if inst.skill_id ~= nil and inst.slot_index ~= nil then
                     local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-                    if skill.skill_id ~= 0 then
+                    if skill_cannot_override(actor, skill) then
                         if SkillPickup.drop_skill(actor, skill) == false then
                             return false
                         end

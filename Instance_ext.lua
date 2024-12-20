@@ -22,17 +22,17 @@ function Instance_ext.remove_callback(self, callback, name)
         callbacks[self.id][callback][name] = nil
     end
 end
-SkillPickup.add_post_local_drop_func(function (inst, slot_index)
+SkillPickup.add_post_local_drop_func(function (inst, skill)
     if callbacks[inst.id] and callbacks[inst.id]["post_local_drop"] then
         for _, func in pairs(callbacks[inst.id]["post_local_drop"]) do
-            func(inst, slot_index)
+            func(inst, skill)
         end
     end
 end)
-SkillPickup.add_post_local_pickup_func(function (inst, slot_index)
+SkillPickup.add_post_local_pickup_func(function (inst, skill)
     if callbacks[inst.id] and callbacks[inst.id]["post_local_pickup"] then
         for _, func in pairs(callbacks[inst.id]["post_local_pickup"]) do
-            func(inst, slot_index)
+            func(inst, skill)
         end
     end
 end)
