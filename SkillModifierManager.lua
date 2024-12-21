@@ -8,7 +8,7 @@ SkillModifierManager = {}
 SkillModifierManager.register_modifier = function(modifier_name, weight)
     total_weight = total_weight + weight or default_weight
     local modifier = SkillModifier.new(modifier_name, weight or default_weight)
-    if not modifier_pool[modifier_name] then
+    if modifier_pool[modifier_name] then
         log.warning("Seems some modifiers have the same name", modifier_name)
     end
     modifier_pool[modifier_name] = modifier
@@ -51,7 +51,7 @@ SkillModifierManager.add_modifier = function(skill, modifier_name, ...)
 end
 SkillModifierManager.remove_modifier = function(skill, modifier_name, modifier_index)
     local modifier = SkillModifierManager.get_modifier(modifier_name)
-    local data = SkillModifierManager.get_or_create_modifier_data(skill, modifier_index)
+    local data = SkillModifierManager.get_modifier_data(skill, modifier_index)
     modifier.remove_func(data, modifier_index)
     SkillModifierManager.clear_modifier_data(skill, modifier_index)
 end
@@ -60,6 +60,9 @@ SkillModifierManager.get_or_create_modifier_data = function(skill, modifier_inde
     skills_data[address] = skills_data[address] or {}
     skills_data[address][modifier_index] = skills_data[address][modifier_index] or SkillModifierData.new(skill)
     return skills_data[address][modifier_index]
+end
+SkillModifierManager.get_modifier_data = function(skill, modifier_index)
+    return skills_data[memory.get_usertype_pointer(skill)][modifier_index]
 end
 SkillModifierManager.clear_modifier_data = function(skill, modifier_index)
     skills_data[memory.get_usertype_pointer(skill)][modifier_index] = nil

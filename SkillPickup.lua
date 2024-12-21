@@ -9,7 +9,7 @@ SkillPickup.add_pre_local_drop_func = function(fn)
     pre_local_drop_funcs[#pre_local_drop_funcs + 1] = fn
 end
 local post_local_drop_funcs = {}
----@param fn function (actor, skill)
+---@param fn function (actor, skill_params)
 SkillPickup.add_post_local_drop_func = function(fn)
     post_local_drop_funcs[#post_local_drop_funcs + 1] = fn
 end
@@ -29,12 +29,12 @@ SkillPickup.add_skill_override_check_func = function(fn)
     skill_override_check_funcs[#skill_override_check_funcs + 1] = fn
 end
 SkillPickup.add_skill_override_check_func(function (actor, skill)
-    return skill.id == 0
+    return skill.skill_id == 0
 end)
-local function skill_cannot_override(actor, skill)
+local function can_skill_override(actor, skill)
     for i = 1, #skill_override_check_funcs do
-        if skill_override_check_funcs[i](actor, skill) == false then
-            return false
+        if skill_override_check_funcs[i](actor, skill) then
+            return true
         end
     end
 end
@@ -62,7 +62,7 @@ SkillPickup.drop_skill = function(player, skill)
     gm.actor_skill_set(player, skill.slot_index, 0)
     SkillPickup.skill_create(player.x, player.y, skill_params)
     for i = 1, #post_local_drop_funcs do
-        post_local_drop_funcs[i](player, skill)
+        post_local_drop_funcs[i](player, skill_params)
     end
 end
 local pre_create_funcs = {}
@@ -104,16 +104,6 @@ local set_skill = function(player, interactable)
         skill.stock = interactable.stock
         skill.skill_recalculate_stats(skill, skill)
     end
-    --[[
-    local diff_check_table = Utils.get_skill_diff_check_table()
-    for k, v in pairs(diff_check_table) do
-        if interactable[k] ~= nil then
-            skill[k] = interactable[k]
-        end
-    end
-    if interactable.disable_stock_regen ~= nil then
-        skill.disable_stock_regen = interactable.disable_stock_regen
-    end]]
     if interactable.ctm_sprite ~= nil then
         skill.ctm_sprite = interactable.ctm_sprite
     end
@@ -134,6 +124,7 @@ local function init()
     local skillPickup = Object.new("hinyb", "skillPickup", Object.PARENT.interactable)
     SkillPickup.skillPickup_object_index = skillPickup.value
     skillPickup.obj_sprite = 114
+    skillPickup.obj_depth = 10.0
     skillPickup:onStep(function(inst)
         if inst.active == 1 then
             local actor = inst.activator.value
@@ -141,7 +132,7 @@ local function init()
                 Utils.get_net_type() ~= Net.TYPE.client then
                 if inst.skill_id ~= nil and inst.slot_index ~= nil then
                     local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-                    if skill_cannot_override(actor, skill) then
+                    if not can_skill_override(actor, skill) then
                         if SkillPickup.drop_skill(actor, skill) == false then
                             return false
                         end

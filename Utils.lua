@@ -74,7 +74,7 @@ local need_scrap_bar_skill_id_list = {
     [135] = true,
     [136] = true
 }
-Utils.is_skill_need_scrap_bar = function (skill_id)
+Utils.is_skill_need_scrap_bar = function(skill_id)
     return need_scrap_bar_skill_id_list[skill_id] or false
 end
 Utils.LCG_random = function(seed)
