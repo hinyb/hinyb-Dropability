@@ -80,23 +80,24 @@ end
 function SkillModifierData:remove_pre_actor_death_after_hippo_callback()
     self.pre_actor_death_after_hippo_funcs = nil
 end
-
-function SkillModifierData:add_pre_can_activate_callback(fn)
+---@param fn function (modifier_data)
+function SkillModifierData:add_pre_local_can_activate_callback(fn)
     if self.pre_can_activate_funcs == nil then
         self.pre_can_activate_funcs = {}
     end
     table.insert(self.pre_can_activate_funcs, fn)
 end
-function SkillModifierData:remove_pre_can_activate_callback()
+function SkillModifierData:remove_pre_local_can_activate_callback()
     self.pre_can_activate_funcs = nil
 end
-function SkillModifierData:add_post_can_activate_callback(fn)
+---@param fn function (modifier_data)
+function SkillModifierData:add_post_local_can_activate_callback(fn)
     if self.post_can_activate_funcs == nil then
         self.post_can_activate_funcs = {}
     end
     table.insert(self.post_can_activate_funcs, fn)
 end
-function SkillModifierData:remove_post_can_activate_callback()
+function SkillModifierData:remove_post_local_can_activate_callback()
     self.post_can_activate_funcs = nil
 end
 function SkillModifierData:add_pre_drop_callback(fn)
@@ -124,7 +125,7 @@ SkillPickup.add_pre_local_drop_func(function (actor, skill)
         local modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.pre_activate_funcs then
+            if data.pre_drop_funcs then
                 for i = 1, #data.pre_drop_funcs do
                     data.pre_drop_funcs[i](data)
                 end
