@@ -1,5 +1,7 @@
 v3.1.5
 * Add some functions for SkillChest.
+* Add some check and lazy initialization for SkillModifierData.
+* Fix the wrong warning message when adding a modifier.
 
 v3.1.4
 * Update to RMT 1.2.0.
