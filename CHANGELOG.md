@@ -1,3 +1,7 @@
+v3.1.6
+* Add valid check to SkillModifierData.
+* Fix handV crash game in multiplayer.
+
 v3.1.5
 * Add some functions for SkillChest.
 * Add some check and lazy initialization for SkillModifierData.
