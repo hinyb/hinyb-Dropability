@@ -120,25 +120,27 @@ function SkillModifierData:remove_post_drop_callback()
     self.post_drop_funcs = nil
 end
 local post_drop_callback = {}
-SkillPickup.add_pre_local_drop_func(function (actor, skill)
+SkillPickup.add_pre_local_drop_func(function(actor, skill)
     if skill.ctm_arr_modifiers ~= nil then
         local modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.pre_drop_funcs then
-                for i = 1, #data.pre_drop_funcs do
-                    data.pre_drop_funcs[i](data)
+            if data then
+                if data.pre_drop_funcs then
+                    for i = 1, #data.pre_drop_funcs do
+                        data.pre_drop_funcs[i](data)
+                    end
                 end
-            end
-            if data.post_drop_funcs then
-                for i = 1, #data.post_drop_funcs do
-                    table.insert(post_drop_callback, data.post_drop_funcs[i])
+                if data.post_drop_funcs then
+                    for i = 1, #data.post_drop_funcs do
+                        table.insert(post_drop_callback, data.post_drop_funcs[i])
+                    end
                 end
             end
         end
     end
 end)
-SkillPickup.add_post_local_drop_func(function (actor, skill_params)
+SkillPickup.add_post_local_drop_func(function(actor, skill_params)
     for i = 1, #post_drop_callback do
         post_drop_callback[i](actor, skill_params)
     end
@@ -150,10 +152,12 @@ gm.post_script_hook(102397, function(self, other, result, args)
         local modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for i = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, i)
-            if data.skill_attr_changes then
-                for name, funcs in pairs(data.skill_attr_changes) do
-                    for j = 1, #funcs do
-                        skill[name] = funcs[j](skill[name], data)
+            if data then
+                if data.skill_attr_changes then
+                    for name, funcs in pairs(data.skill_attr_changes) do
+                        for j = 1, #funcs do
+                            skill[name] = funcs[j](skill[name], data)
+                        end
                     end
                 end
             end
@@ -168,10 +172,12 @@ gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, ar
         local flag = true
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.pre_activate_funcs then
-                for i = 1, #data.pre_activate_funcs do
-                    if data.pre_activate_funcs[i](data) == false then
-                        flag = false
+            if data then
+                if data.pre_activate_funcs then
+                    for i = 1, #data.pre_activate_funcs do
+                        if data.pre_activate_funcs[i](data) == false then
+                            flag = false
+                        end
                     end
                 end
             end
@@ -186,9 +192,11 @@ gm.post_script_hook(gm.constants.skill_activate, function(self, other, result, a
         local modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.post_activate_funcs then
-                for i = 1, #data.post_activate_funcs do
-                    data.post_activate_funcs[i](data)
+            if data then
+                if data.post_activate_funcs then
+                    for i = 1, #data.post_activate_funcs do
+                        data.post_activate_funcs[i](data)
+                    end
                 end
             end
         end
@@ -200,9 +208,11 @@ gm.post_script_hook(102400, function(self, other, result, args)
         local modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.post_add_stock_funcs then
-                for i = 1, #data.post_add_stock_funcs do
-                    data.post_add_stock_funcs[i](data)
+            if data then
+                if data.post_add_stock_funcs then
+                    for i = 1, #data.post_add_stock_funcs do
+                        data.post_add_stock_funcs[i](data)
+                    end
                 end
             end
         end
@@ -215,9 +225,11 @@ gm.post_script_hook(102401, function(self, other, result, args)
         local modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.post_remove_stock_funcs then
-                for i = 1, #data.post_remove_stock_funcs do
-                    data.post_remove_stock_funcs[i](data)
+            if data then
+                if data.post_remove_stock_funcs then
+                    for i = 1, #data.post_remove_stock_funcs do
+                        data.post_remove_stock_funcs[i](data)
+                    end
                 end
             end
         end
@@ -234,9 +246,11 @@ gm.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
                 local modifiers = Array.wrap(skill.ctm_arr_modifiers)
                 for j = 0, modifiers:size() - 1 do
                     local data = SkillModifierManager.get_modifier_data(skill, j)
-                    if data.pre_actor_death_after_hippo_funcs then
-                        for i = 1, #data.pre_actor_death_after_hippo_funcs do
-                            data.pre_actor_death_after_hippo_funcs[i](data)
+                    if data then
+                        if data.pre_actor_death_after_hippo_funcs then
+                            for i = 1, #data.pre_actor_death_after_hippo_funcs do
+                                data.pre_actor_death_after_hippo_funcs[i](data)
+                            end
                         end
                     end
                 end
@@ -251,10 +265,12 @@ gm.pre_script_hook(gm.constants.skill_can_activate, function(self, other, result
         local flag = true
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.pre_can_activate_funcs then
-                for i = 1, #data.pre_can_activate_funcs do
-                    if data.pre_can_activate_funcs[i](data) == false then
-                        flag = false
+            if data then
+                if data.pre_can_activate_funcs then
+                    for i = 1, #data.pre_can_activate_funcs do
+                        if data.pre_can_activate_funcs[i](data) == false then
+                            flag = false
+                        end
                     end
                 end
             end
@@ -268,9 +284,11 @@ gm.post_script_hook(gm.constants.skill_can_activate, function(self, other, resul
         local modifiers = Array.wrap(skill.ctm_arr_modifiers)
         for j = 0, modifiers:size() - 1 do
             local data = SkillModifierManager.get_modifier_data(skill, j)
-            if data.post_can_activate_funcs then
-                for i = 1, #data.post_can_activate_funcs do
-                    data.post_can_activate_funcs[i](data, result)
+            if data then
+                if data.post_can_activate_funcs then
+                    for i = 1, #data.post_can_activate_funcs do
+                        data.post_can_activate_funcs[i](data, result)
+                    end
                 end
             end
         end
@@ -290,7 +308,9 @@ memory.dynamic_hook_mid("hud_draw_skill_info", {"rax", "rsp+200h-188h"}, {"RValu
                     modifier_args[j] = modifier:get(j)
                 end
                 local data = SkillModifierManager.get_modifier_data(args[2].value, i)
-                args[1].value = info_func(args[1].value, data, table.unpack(modifier_args))
+                if data then
+                    args[1].value = info_func(args[1].value, data, table.unpack(modifier_args))
+                end
             end
         end
     end)
