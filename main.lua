@@ -52,9 +52,7 @@ gui.add_always_draw_imgui(function()
                 if tooltip ~= nil then
                     local item_object_id, item_id = Utils.find_item_with_localized(tooltip, player)
                     if item_object_id ~= nil and item_id ~= nil then
-                        if drop_item ~= nil then
-                            drop_item(player, item_id, item_object_id)
-                        end
+                        drop_item(player, item_id, item_object_id)
                     else
                         local skill = Utils.find_skill_with_localized(tooltip, player)
                         if skill and skill.skill_id ~= 0 then

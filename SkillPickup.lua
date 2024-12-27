@@ -39,7 +39,7 @@ local function can_skill_override(actor, skill)
     end
 end
 SkillPickup.add_skill_check_func(function (actor, skill)
-    if skill.skill_id == 70 or skill.skill_id == 71 then
+    if skill.skill_id == 16 or skill.skill_id == 70 or skill.skill_id == 71 then
         return false
     end
 end)
@@ -60,7 +60,8 @@ SkillPickup.drop_skill = function(player, skill)
         end
     end
     gm.actor_skill_set(player, skill.slot_index, 0)
-    SkillPickup.skill_create(player.x, player.y, skill_params)
+    local x, y = Utils.get_player_actual_position(player)
+    SkillPickup.skill_create(x, y, skill_params)
     for i = 1, #post_local_drop_funcs do
         post_local_drop_funcs[i](player, skill_params)
     end
@@ -125,9 +126,10 @@ local function init()
     SkillPickup.skillPickup_object_index = skillPickup.value
     skillPickup.obj_sprite = 114
     skillPickup.obj_depth = 10.0
-    skillPickup:onStep(function(inst)
-        if inst.active == 1 then
-            local actor = inst.activator.value
+    gm.pre_script_hook(gm.constants.interactable_set_active, function(self, other, result, args)
+        local inst = args[1].value
+        if inst.__object_index == skillPickup.value then
+            local actor = args[2].value
             if actor.object_index == gm.constants.oP and actor.is_local or actor.object_index ~= gm.constants.oP and
                 Utils.get_net_type() ~= Net.TYPE.client then
                 if inst.skill_id ~= nil and inst.slot_index ~= nil then
@@ -137,15 +139,16 @@ local function init()
                             return false
                         end
                     end
-                    activate_skill(actor, inst.value)
+                    activate_skill(actor, inst)
                     for i = 1, #post_local_pickup_funcs do
                         post_local_pickup_funcs[i](actor, inst.slot_index)
                     end
                 end
             end
+            inst.activator = actor
+            return false
         end
     end)
-
     local active_skill_packet = Packet.new()
     active_skill_packet:onReceived(function(message, player)
         local Player = message:read_instance().value

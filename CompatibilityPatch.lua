@@ -80,12 +80,12 @@ memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h
             args[1].value = args[2].class
         end
     end)
-local function defalut_nil(target, member, value)
+local function initialize_number(target, member, value)
     if target[member] == nil then
         target[member] = value or false
     end
 end
-local function nilcreate(target, member, num)
+local function initialize_array(target, member, num)
     if target[member .. "_half"] == nil or gm.array_length(target[member .. "_half"]) == 0 then
         target[member .. "_half"] = gm.array_create(num, 0.0)
         gm.array_set(target[member .. "_half"], 0, target[member])
@@ -93,30 +93,31 @@ local function nilcreate(target, member, num)
     end
 end
 CompatibilityPatch.set_compat = function(self)
-    defalut_nil(self, "charged")
-    defalut_nil(self, "_miner_charged_elder_kill_count")
-    defalut_nil(self, "sniper_bonus")
-    defalut_nil(self, "dash_timer")
-    defalut_nil(self, "ydisp")
-    defalut_nil(self, "dive")
-    defalut_nil(self, "_hand_sawmerang_kill_count")
-    defalut_nil(self, "dash_again")
-    defalut_nil(self, "above_50_health", true)
-    defalut_nil(self, "above_60_health", true)
-    defalut_nil(self, "spd")
-    nilcreate(self, "sprite_idle", 3)
-    nilcreate(self, "sprite_fall", 3)
-    nilcreate(self, "sprite_jump_peak", 3)
-    nilcreate(self, "sprite_jump", 3)
-    nilcreate(self, "sprite_walk", 4)
+    initialize_number(self, "charged")
+    initialize_number(self, "_miner_charged_elder_kill_count")
+    initialize_number(self, "sniper_bonus")
+    initialize_number(self, "dash_timer")
+    initialize_number(self, "ydisp")
+    initialize_number(self, "dive")
+    initialize_number(self, "_hand_sawmerang_kill_count")
+    initialize_number(self, "dash_again")
+    initialize_number(self, "above_50_health", true)
+    initialize_number(self, "above_60_health", true)
+    initialize_number(self, "spd")
+    initialize_array(self, "sprite_idle", 3)
+    initialize_array(self, "sprite_fall", 3)
+    initialize_array(self, "sprite_jump_peak", 3)
+    initialize_array(self, "sprite_jump", 3)
+    initialize_array(self, "sprite_walk", 4)
     self.spat = -4 -- SpitterZ
     self.totem_spawn_id = gm.array_create(0, 0) -- monsterShamGX
     ---- for monster ----
-    defalut_nil(self, "aiming")
-    defalut_nil(self, "is_local")
-    defalut_nil(self, "pause")
-    defalut_nil(self, "menu_typing")
-    defalut_nil(self, "class")
+    initialize_number(self, "bunker")
+    initialize_number(self, "aiming")
+    initialize_number(self, "is_local")
+    initialize_number(self, "pause")
+    initialize_number(self, "menu_typing")
+    initialize_number(self, "class")
 end
 CompatibilityPatch.has_scrap_bar = function (actor)
     if actor.class == 14 or drifter_scarp_bar_list[actor.id] then

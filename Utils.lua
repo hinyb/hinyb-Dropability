@@ -1,6 +1,7 @@
 local random_skill_blacklist = {
     [0] = true, -- no skill
-    [70] = true, -- Reload           Useless skills
+    [16] = true, -- enforcerZ2Reload Useless skills
+    [70] = true, -- sniperZReload
     [71] = true, -- Spotter Recall   
     [178] = true, -- monsterWispBZ
     [179] = true, -- monsterBossZ    It seems like the Bosses' skills are different from normal skills
@@ -27,6 +28,15 @@ local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
 Utils = {}
+Utils.get_player_actual_position = function (player)
+    if player.following_player ~= -4 then
+        return player.following_player.x, player.following_player.y
+    elseif player.player_drone ~= -4 then
+        return player.player_drone.x, player.player_drone.y
+    else
+        return player.x, player.y
+    end
+end
 Utils.find_instance_with_m_id = function(object_index, m_id)
     local insts = Instance.find_all(object_index)
     for i = 1, #insts do
