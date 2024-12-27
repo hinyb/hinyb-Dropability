@@ -28,7 +28,7 @@ local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
 Utils = {}
-Utils.get_player_actual_position = function (player)
+Utils.get_player_actual_position = function(player)
     if player.following_player ~= -4 then
         return player.following_player.x, player.following_player.y
     elseif player.player_drone ~= -4 then

@@ -125,7 +125,7 @@ local function init()
     local skillPickup = Object.new("hinyb", "skillPickup", Object.PARENT.interactable)
     SkillPickup.skillPickup_object_index = skillPickup.value
     skillPickup.obj_sprite = 114
-    skillPickup.obj_depth = 10.0
+    skillPickup.obj_depth = 5.0
     gm.pre_script_hook(gm.constants.interactable_set_active, function(self, other, result, args)
         local inst = args[1].value
         if inst.__object_index == skillPickup.value then

@@ -6,8 +6,9 @@ SkillModifierManager = {}
 ---@param modifier_name string The name of modifier being registered. This should be a unique identifier for the modifier.
 ---@param weight number? The weight of the modifier being registered. The default weight is 500.
 SkillModifierManager.register_modifier = function(modifier_name, weight)
-    total_weight = total_weight + weight or default_weight
-    local modifier = SkillModifier.new(modifier_name, weight or default_weight)
+    weight = weight or default_weight
+    total_weight = total_weight + weight
+    local modifier = SkillModifier.new(modifier_name, weight)
     if modifier_pool[modifier_name] then
         log.warning("Seems some modifiers have the same name", modifier_name)
     end
