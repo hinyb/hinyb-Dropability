@@ -7,7 +7,7 @@ mods.on_all_mods_loaded(function()
         end
     end
     params = {
-        drop_item_key = 522
+        drop_key = 522
     }
     params = Toml.config_update(_ENV["!guid"], params)
 end)
@@ -21,6 +21,7 @@ require("SkillModifierData")
 require("SkillModifierManager")
 require("Dynamic_calls")
 require("Instance_ext")
+require("Callback_ext")
 require("GameStyleManager")
 
 mods["MGReturns-ENVY"].auto()
@@ -34,8 +35,10 @@ public_things = {
     ["SkillModifierManager"] = SkillModifierManager,
     ["Dynamic_calls"] = Dynamic_calls,
     ["Instance_ext"] = Instance_ext,
+    ["Callback_ext"] = Callback_ext,
     ["CompatibilityPatch"] = CompatibilityPatch,
     ["GameStyleManager"] = GameStyleManager
+
 } -- Maybe using a wrong way
 require("./envy_setup")
 
@@ -44,8 +47,19 @@ local tooltip
 gm.post_script_hook(gm.constants.ui_hover_tooltip, function(self, other, result, args)
     tooltip = args[3].value
 end)
+
+gm.post_script_hook(gm.constants.hud_draw_skill_info, function(self, other, result, args)
+    if ImGui.IsKeyPressed(params['drop_key'], false) then
+        local skill = gm.array_get(args[1].value.skills, args[2].value).active_skill
+        if skill.skill_id ~= 0 then
+            SkillPickup.drop_skill(args[1].value, skill)
+        end
+    end
+end)
+-- gml_Object_oHUDTabMenu_Draw_73 can get item_id directly, but draw_items can't
+-- So I decided to retain this code.
 gui.add_always_draw_imgui(function()
-    if ImGui.IsKeyPressed(params['drop_item_key'], false) then
+    if ImGui.IsKeyPressed(params['drop_key'], false) then
         local player = Player.get_client().value
         if Instance.exists(player) then
             if gm.variable_global_get("_ui_hover_tooltip_state") ~= nil then
@@ -53,11 +67,6 @@ gui.add_always_draw_imgui(function()
                     local item_object_id, item_id = Utils.find_item_with_localized(tooltip, player)
                     if item_object_id ~= nil and item_id ~= nil then
                         drop_item(player, item_id, item_object_id)
-                    else
-                        local skill = Utils.find_skill_with_localized(tooltip, player)
-                        if skill.skill_id ~= 0 then
-                            SkillPickup.drop_skill(player, skill)
-                        end
                     end
                 end
             end
@@ -65,9 +74,9 @@ gui.add_always_draw_imgui(function()
     end
 end)
 gui.add_to_menu_bar(function()
-    local isChanged, keybind_value = ImGui.Hotkey("Drop Item Key", params['drop_item_key'])
+    local isChanged, keybind_value = ImGui.Hotkey("Drop Item Key", params['drop_key'])
     if isChanged then
-        params['drop_item_key'] = keybind_value
+        params['drop_key'] = keybind_value
         Toml.save_cfg(_ENV["!guid"], params)
     end
 end)

@@ -119,7 +119,7 @@ CompatibilityPatch.set_compat = function(self)
     initialize_number(self, "menu_typing")
     initialize_number(self, "class")
 end
-CompatibilityPatch.has_scrap_bar = function (actor)
+CompatibilityPatch.has_scrap_bar = function(actor)
     if actor.class == 14 or drifter_scarp_bar_list[actor.id] then
         return true
     else
@@ -197,5 +197,39 @@ gm.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, other, res
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
+
+-- oHuntressTrirang skill
+memory.dynamic_hook_mid("huntressX2fix", {"rax", "[rbp+2C0h+18h]"}, {"RValue*", "YYObjectBase*"}, 0,
+    gm.get_script_function_address(100387):add(2805), function(args)
+        args[2].total_trirang = (args[2].total_trirang or 0) + 1
+        args[1].value.parent_skill = args[2]
+    end)
+gm.pre_code_execute("gml_Object_oHuntressTrirang_Destroy_0", function(self, other)
+    if self.parent_skill then
+        self.parent_skill.total_trirang = self.parent_skill.total_trirang - 1
+    end
+end)
+Initialize(function()
+    local huntressX2 = Skill.find("ror", "huntressX2")
+    huntressX2:onPostStep(function(actor, struct, slot)
+        local total_trirang = struct.total_trirang
+        if total_trirang and total_trirang > 0 then
+            struct.freeze_cooldown(struct, struct)
+        end
+    end)
+end)
+-- Maybe editing the bytecode is better.
+--[[
+local jmp_target = gm.get_script_function_address(102094):add(1063)
+memory.dynamic_hook_mid("huntressX2fix_skip_origin", {}, {}, 0, gm.get_script_function_address(102094):add(532), function(args)
+    return jmp_target
+end)
+]]
+gm.get_script_function_address(102094):add(526):patch_byte(0xE9):apply()
+gm.get_script_function_address(102094):add(526):add(1):patch_byte(0x13):apply()
+gm.get_script_function_address(102094):add(526):add(2):patch_byte(0x02):apply()
+gm.get_script_function_address(102094):add(526):add(3):patch_byte(0x00):apply()
+gm.get_script_function_address(102094):add(526):add(4):patch_byte(0x00):apply()
+gm.get_script_function_address(102094):add(526):add(5):patch_byte(0x90):apply()
 
 return CompatibilityPatch
