@@ -1,3 +1,8 @@
+v3.1.7
+* Fix drop at incorrect place when player is dead.
+* Fix skillPickup's incorrect depth.
+* Add enforcerZ2Reload to the blacklist.
+
 v3.1.6
 * Add valid check to SkillModifierData.
 * Fix handV crash game in multiplayer.

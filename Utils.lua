@@ -24,17 +24,16 @@ local skill_id_to_slot = {
     [203] = 2, -- umbraMissile
     [204] = 2 -- umbraSnipe
 }
-local net_type
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
 Utils = {}
-Utils.get_player_actual_position = function(player)
-    if player.following_player ~= -4 then
-        return player.following_player.x, player.following_player.y
-    elseif player.player_drone ~= -4 then
-        return player.player_drone.x, player.player_drone.y
+Utils.get_actual_position = function(actor)
+    if actor.following_player and actor.following_player ~= -4 then
+        return actor.following_player.x, actor.following_player.y
+    elseif actor.player_drone and actor.player_drone ~= -4 then
+        return actor.player_drone.x, actor.player_drone.y
     else
-        return player.x, player.y
+        return actor.x, actor.y
     end
 end
 Utils.find_instance_with_m_id = function(object_index, m_id)
@@ -144,6 +143,9 @@ Utils.get_random_buff = function(is_timed, isdebuff)
         end
     end
 end
+Utils.get_random_seed = function ()
+    return gm.array_get(gm.rng_create(), 0)
+end
 Utils.get_slot_index_with_name = function(name)
     local type = string.match(name, ".*([ZXCV])")
     if type == "Z" then
@@ -163,10 +165,6 @@ Utils.get_slot_index_with_skill_id = function(skill_id)
         log.warning("Can't get the skill's slot_index " .. skill_id)
     end
     return slot_index
-end
-Utils.get_use_delay = function(skill_id)
-    local skill = Class.SKILL:get(skill_id)
-    return skill:get(14)
 end
 Utils.wrap_skill = function(skill_id)
     local skill = Class.SKILL:get(skill_id)
@@ -239,9 +237,6 @@ Utils.find_skill_with_localized = function(name, player)
             return skill
         end
     end
-end
-Utils.get_net_type = function()
-    return net_type or Net.get_type()
 end
 Utils.sync_instance_send = function(inst, table_num, sync_table)
     log.error("sync_instance_send hasn't been initialized")
@@ -367,7 +362,7 @@ Utils.set_and_sync_inst_from_table = function(inst, table)
     for mem, val in pairs(table) do
         inst[mem] = val
     end
-    if Utils.get_net_type() ~= Net.TYPE.single then
+    if not Net.is_single() then
         Utils.sync_instance_send(inst, Utils.table_get_length(table), table)
     end
 end
@@ -536,7 +531,7 @@ local function init()
                 end
             end
         end
-        if Utils.get_net_type() == Net.TYPE.host then
+        if Net.is_host() then
             local sync_message = sync_instance_packet:message_begin()
             sync_message:write_instance(inst)
             sync_message:write_int(num)
@@ -563,28 +558,10 @@ local function init()
             sync_message:write_string(k)
             sync_message:write_string(v)
         end
-        if Utils.get_net_type() == Net.TYPE.host then
+        if Net.is_host() then
             sync_message:send_to_all()
         else
             sync_message:send_to_host()
-        end
-    end
-end
--- basically copy from Alarm
-local alarms = {}
-Utils.add_alarm = function(func, time, ...)
-    local future_frame = gm.variable_global_get("_current_frame") + time
-    if not alarms[future_frame] then
-        alarms[future_frame] = {}
-    end
-    local alarms_num = #alarms[future_frame] + 1
-    alarms[future_frame][alarms_num] = {
-        fn = func,
-        args = select(1, ...)
-    }
-    return function()
-        if alarms[future_frame] ~= nil then
-            alarms[future_frame][alarms_num] = nil
         end
     end
 end
@@ -592,26 +569,8 @@ Utils.is_custom_object = function(object_index)
     local is_customobject = gm.variable_global_get("is_customobject")
     return gm.ds_map_find_value(is_customobject, object_index)
 end
-Utils.clear_alarms = function()
-    alarms = {}
-end
 Initialize(init)
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-    net_type = Net.get_type()
     ResourceManager = gm.variable_global_get("ResourceManager_object")
-    alarms = {}
-end)
-gm.post_script_hook(gm.constants.__input_system_tick, function()
-    local current_frame = gm.variable_global_get("_current_frame")
-    if not alarms[current_frame] then
-        return
-    end
-    for i = 1, #alarms[current_frame] do
-        local status, err = pcall(alarms[current_frame][i].fn, alarms[current_frame][i].args)
-        if not status then
-            log.error("Alarm error from " .. alarms[current_frame][i] .. "\n" .. err)
-        end
-    end
-    alarms[current_frame] = nil
 end)
 return Utils

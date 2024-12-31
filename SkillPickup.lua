@@ -60,7 +60,7 @@ SkillPickup.drop_skill = function(player, skill)
         end
     end
     gm.actor_skill_set(player, skill.slot_index, 0)
-    local x, y = Utils.get_player_actual_position(player)
+    local x, y = Utils.get_actual_position(player)
     SkillPickup.skill_create(x, y, skill_params)
     for i = 1, #post_local_drop_funcs do
         post_local_drop_funcs[i](player, skill_params)
@@ -131,7 +131,7 @@ local function init()
         if inst.__object_index == skillPickup.value then
             local actor = args[2].value
             if actor.object_index == gm.constants.oP and actor.is_local or actor.object_index ~= gm.constants.oP and
-                Utils.get_net_type() ~= Net.TYPE.client then
+                not Net.is_client() then
                 if inst.skill_id ~= nil and inst.slot_index ~= nil then
                     local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
                     if not can_skill_override(actor, skill) then
@@ -153,7 +153,7 @@ local function init()
     active_skill_packet:onReceived(function(message, player)
         local Player = message:read_instance().value
         local Interactable = message:read_instance().value
-        if Utils.get_net_type() == Net.TYPE.host then
+        if Net.is_host() then
             local sync_message = active_skill_packet:message_begin()
             sync_message:write_instance(Player)
             sync_message:write_instance(Interactable)
@@ -193,7 +193,7 @@ local function init()
                 skill_params[mem] = Utils.parse_string_to_value(val)
             end
         end
-        if Utils.get_net_type() == Net.TYPE.host then
+        if Net.is_host() then
             drop_skill(player.x, player.y, skill_params)
         else
             local skill = message:read_instance().value
@@ -219,7 +219,7 @@ local function init()
         return sync_message
     end
     gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-        if Utils.get_net_type() == Net.TYPE.single then
+        if Net.is_single() then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params)
@@ -230,7 +230,7 @@ local function init()
             activate_skill = function(Player, Interactable)
                 set_skill(Player, Interactable)
             end
-        elseif Utils.get_net_type() == Net.TYPE.host then
+        elseif Net.is_host() then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params)

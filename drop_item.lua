@@ -19,11 +19,11 @@ local function init()
 end
 
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-    if Utils.get_net_type() == Net.TYPE.host or Utils.get_net_type() == Net.TYPE.single then
+    if not Net.is_client() then
         drop_item = function(player, item_id, item_object_id)
             if gm.item_count(player, item_id, 0) >= 1 then
                 gm.item_take(player, item_id, 1, 0)
-                local x, y = Utils.get_player_actual_position(player)
+                local x, y = Utils.get_actual_position(player)
                 local item = gm.instance_create_depth(x, y, 0, item_object_id)
                 table.insert(drop_item_id_list, item.id)
             end

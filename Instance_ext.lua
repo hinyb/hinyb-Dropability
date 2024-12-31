@@ -4,7 +4,10 @@ local callbacks_check_table = {
     pre_destroy = true,
     post_local_drop = true,
     post_local_pickup = true,
-    pre_damager_attack_process = true
+    pre_damager_attack_process = true,
+    pre_damager_attack_process_parent = true,
+    pre_actor_death_after_hippo = true,
+    pre_actor_set_dead = true
 }
 function Instance_ext.add_on_anim_end(self, name, fn)
     name = name .. "on_anim_end"
@@ -77,8 +80,33 @@ gm.pre_script_hook(gm.constants.instance_destroy, function(self, other, result, 
         return flag
     end
 end)
+
+-- It might be better to bind the instance instead of skill. But I can't extend Instance.
+-- And Need more time to improve this.
+gm.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
+    if gm.array_get(self.inventory_item_stack, 76) == 0 then -- temporary solution.
+        if callbacks[self.id] and callbacks[self.id]["pre_actor_death_after_hippo"] then
+            for _, func in pairs(callbacks[self.id]["pre_actor_death_after_hippo"]) do
+                func(self)
+            end
+        end
+    end
+end)
+gm.pre_script_hook(gm.constants.actor_set_dead, function(self, other, result, args)
+    local id = type(args[1].value) == "number" and args[1].value or args[1].value.id
+    if callbacks[id] and callbacks[id]["pre_actor_set_dead"] then
+        local flag = true
+        for _, func in pairs(callbacks[id]["pre_actor_set_dead"]) do
+            if func(gm.CInstance.instance_id_to_CInstance[id]) == false then
+                flag = false
+            end
+        end
+        return flag
+    end
+end)
+
 gm.pre_script_hook(gm.constants.damager_attack_process, function(self, other, result, args)
-    local actor = args[1].value.parent
+    local actor = args[1].value
     if callbacks[actor.id] and callbacks[actor.id]["pre_damager_attack_process"] then
         local flag = true
         for _, func in pairs(callbacks[actor.id]["pre_damager_attack_process"]) do
@@ -86,7 +114,21 @@ gm.pre_script_hook(gm.constants.damager_attack_process, function(self, other, re
                 flag = false
             end
         end
-        return flag
+        if flag == false then
+            return flag
+        end
+    end
+    actor = actor.parent
+    if actor then
+        if callbacks[actor.id] and callbacks[actor.id]["pre_damager_attack_process_parent"] then
+            local flag = true
+            for _, func in pairs(callbacks[actor.id]["pre_damager_attack_process_parent"]) do
+                if func(args[1].value, args[2].value) == false then
+                    flag = false
+                end
+            end
+            return flag
+        end
     end
 end)
 gm.post_script_hook(gm.constants.instance_destroy, function(self, other, result, args)

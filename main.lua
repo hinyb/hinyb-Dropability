@@ -55,7 +55,7 @@ gui.add_always_draw_imgui(function()
                         drop_item(player, item_id, item_object_id)
                     else
                         local skill = Utils.find_skill_with_localized(tooltip, player)
-                        if skill and skill.skill_id ~= 0 then
+                        if skill.skill_id ~= 0 then
                             SkillPickup.drop_skill(player, skill)
                         end
                     end
