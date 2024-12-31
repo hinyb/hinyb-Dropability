@@ -1,4 +1,4 @@
-v3.1.7
+v3.1.7 **Final version of 2024**
 * Fix drop at incorrect place when player is dead.
 * Fix skillPickup's incorrect depth.
 * Add enforcerZ2Reload to the blacklist.
