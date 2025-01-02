@@ -129,21 +129,6 @@ end
 gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     CompatibilityPatch.set_compat(self)
 end)
--- still have some issues
-memory.dynamic_hook_mid("actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0,
-    gm.get_script_function_address(gm.constants.actor_death):add(38162), function(args)
-        local skills = args[2].skills
-        for i = 0, #skills - 1 do
-            local skill_id = gm.array_get(skills, i).active_skill.skill_id
-            if Utils.get_handy_drone_type(skill_id) then
-                local drone = gm.instance_create(args[2].x, args[2].y, 685)
-                drone.parent = args[2].id
-                drone.team = args[2].team
-                drone.set_type(drone, args[2], Utils.get_handy_drone_type(skill_id))
-            end
-        end
-        args[1]:set(-1) -- to override original, hope this may not break something
-    end)
 
 -- For monsterShamGX
 local sham_list = {
@@ -218,13 +203,6 @@ Initialize(function()
         end
     end)
 end)
--- Maybe editing the bytecode is better.
---[[
-local jmp_target = gm.get_script_function_address(102094):add(1063)
-memory.dynamic_hook_mid("huntressX2fix_skip_origin", {}, {}, 0, gm.get_script_function_address(102094):add(532), function(args)
-    return jmp_target
-end)
-]]
 gm.get_script_function_address(102094):add(526):patch_byte(0xE9):apply()
 gm.get_script_function_address(102094):add(526):add(1):patch_byte(0x13):apply()
 gm.get_script_function_address(102094):add(526):add(2):patch_byte(0x02):apply()
@@ -232,4 +210,72 @@ gm.get_script_function_address(102094):add(526):add(3):patch_byte(0x00):apply()
 gm.get_script_function_address(102094):add(526):add(4):patch_byte(0x00):apply()
 gm.get_script_function_address(102094):add(526):add(5):patch_byte(0x90):apply()
 
+-- handX 
+local get_hand_skill_num = function(skills, slot_index)
+    local num = 0
+    for i = 0, (slot_index or gm.array_length(skills)) - 1 do
+        local skill = gm.array_get(skills, i).active_skill
+        if Utils.get_handy_drone_type(skill.skill_id) then
+            num = num + 1
+        end
+    end
+    return num
+end
+memory.dynamic_hook_mid("handX_fix_actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0,
+    gm.get_script_function_address(gm.constants.actor_death):add(38162), function(args)
+        local skills = args[2].skills
+        local total_num = get_hand_skill_num(skills)
+        for i = 0, gm.array_length(skills) - 1 do
+            local before_num = get_hand_skill_num(skills, i)
+            local skill = gm.array_get(skills, i).active_skill
+            if Utils.get_handy_drone_type(skill.skill_id) then
+                local drone = gm.instance_create(args[2].x, args[2].y, 685)
+                drone.parent = args[2].id
+                drone.team = args[2].team
+                drone.set_type(drone, args[2], Utils.get_handy_drone_type(skill.skill_id))
+                if total_num == 1 then
+                    drone.angle_offsest = 0
+                else
+                    local step = 90 / (total_num - 1)
+                    drone.angle_offsest = (before_num - (total_num - 1) / 2) * step
+                end
+            end
+        end
+        args[1]:set(-1) -- to override original, hope this may not break something
+    end)
+memory.dynamic_hook_mid("handX_fix_find_skill", {"rbp+410h-340h", "[rbp+410h+10h+8h]"}, {"RValue*", "CInstance*"},
+    0, gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(4676), function(args)
+        local actor = type(args[2].parent) == "number" and gm.CInstance.instance_id_to_CInstance[args[2].parent] or
+                          args[2].parent
+        local skills = actor.skills
+        for i = 0, gm.array_length(skills) - 1 do
+            local skill = gm.array_get(skills, i).active_skill
+            local drone_type = Utils.get_handy_drone_type(skill.skill_id)
+            if drone_type and args[2].drone_type == drone_type then
+                args[1].value = skill
+            end
+        end
+    end)
+local target = gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(1018)
+memory.dynamic_hook_mid("handX_fix_find_drone", {"[rbp+70h+10h]"}, {"CInstance*"}, 0,
+    gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(614), function(args)
+        local actor = type(args[1].parent) == "number" and gm.CInstance.instance_id_to_CInstance[args[1].parent] or
+                          args[1].parent
+        if actor.hand_drone_type ~= args[1].drone_type then
+            return target
+        end
+    end)
+memory.dynamic_hook_mid("handX_fix_angle", {"rbp+410h-438h", "[rbp+410h+10h]"}, {"RValue*", "CInstance*"}, 0,
+    gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(6545), function(args)
+        if args[2].angle_offsest then
+            args[1].value = args[1].value + args[2].angle_offsest
+        end
+    end)
+gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, args)
+    local skill = gm.array_get(self.skills, args[1].value).active_skill
+    local drone_type = Utils.get_handy_drone_type(skill.skill_id)
+    if drone_type then
+        self.hand_drone_type = drone_type
+    end
+end)
 return CompatibilityPatch

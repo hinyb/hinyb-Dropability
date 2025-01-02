@@ -50,6 +50,7 @@ SkillModifierManager.add_modifier = function(skill, modifier_name, ...)
     local data = SkillModifierManager.get_or_create_modifier_data(skill, modifier_index)
     modifier.add_func(data, modifier_index, table.unpack(params))
 end
+-- don't actually remove ctm_arr_modifiers
 SkillModifierManager.remove_modifier = function(skill, modifier_name, modifier_index)
     local modifier = SkillModifierManager.get_modifier(modifier_name)
     local data = SkillModifierManager.get_modifier_data(skill, modifier_index)

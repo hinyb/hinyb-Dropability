@@ -71,16 +71,6 @@ function SkillModifierData:remove_add_remove_stock_callback()
 end
 
 ---@param fn function (modifier_data)
-function SkillModifierData:add_pre_actor_death_after_hippo_callback(fn)
-    if self.pre_actor_death_after_hippo_funcs == nil then
-        self.pre_actor_death_after_hippo_funcs = {}
-    end
-    table.insert(self.pre_actor_death_after_hippo_funcs, fn)
-end
-function SkillModifierData:remove_pre_actor_death_after_hippo_callback()
-    self.pre_actor_death_after_hippo_funcs = nil
-end
----@param fn function (modifier_data)
 function SkillModifierData:add_pre_local_can_activate_callback(fn)
     if self.pre_can_activate_funcs == nil then
         self.pre_can_activate_funcs = {}
@@ -236,28 +226,6 @@ gm.post_script_hook(102401, function(self, other, result, args)
     end
 end)
 
--- It might be better to bind the instance instead of skill. But I can't extend Instance.
--- And Need more time to improve this.
-gm.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
-    if gm.array_get(self.inventory_item_stack, 76) == 0 then -- temporary solution.
-        for i = 0, gm.array_length(self.skills) - 1 do
-            local skill = gm.array_get(self.skills, i).active_skill
-            if skill.ctm_arr_modifiers ~= nil then
-                local modifiers = Array.wrap(skill.ctm_arr_modifiers)
-                for j = 0, modifiers:size() - 1 do
-                    local data = SkillModifierManager.get_modifier_data(skill, j)
-                    if data then
-                        if data.pre_actor_death_after_hippo_funcs then
-                            for i = 1, #data.pre_actor_death_after_hippo_funcs do
-                                data.pre_actor_death_after_hippo_funcs[i](data)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
 gm.pre_script_hook(gm.constants.skill_can_activate, function(self, other, result, args)
     local skill = gm.array_get(self.skills, args[1].value).active_skill
     if skill.ctm_arr_modifiers ~= nil then
