@@ -25,7 +25,7 @@ end
 ---@param attr_str string The name of attribute.
 function SkillModifierData:restore_skill_attr_change(attr_str)
     self.skill_attr_changes[attr_str] = {}
-    gm.get_script_ref(102397)(self.skill, self.skill.parent)
+    gm._mod_ActorSkill_recalculateStats(self.skill)
 end
 ---@param fn function (modifier_data)
 function SkillModifierData:add_pre_activate_callback(fn)

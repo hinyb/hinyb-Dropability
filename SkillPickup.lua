@@ -103,7 +103,7 @@ local set_skill = function(player, interactable)
     local skill = gm.array_get(player.skills, interactable.slot_index).active_skill
     if interactable.stock then
         skill.stock = interactable.stock
-        skill.skill_recalculate_stats(skill, skill)
+        gm._mod_ActorSkill_recalculateStats(skill)
     end
     if interactable.ctm_sprite ~= nil then
         skill.ctm_sprite = interactable.ctm_sprite

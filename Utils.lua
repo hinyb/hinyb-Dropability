@@ -569,6 +569,28 @@ Utils.is_custom_object = function(object_index)
     local is_customobject = gm.variable_global_get("is_customobject")
     return gm.ds_map_find_value(is_customobject, object_index)
 end
+Utils.get_inst_safe = function (inst)
+    return type(inst) == "number" and gm.CInstance.instance_id_to_CInstance[inst] or inst
+end
+local instance_list = {}
+local instance_create_flag = false
+local instance_filter = {}
+Utils.hook_instance_create = function(filter)
+    instance_filter = filter or {}
+    instance_create_flag = true
+    instance_list = {}
+end
+Utils.get_tracked_instances = function()
+    return instance_list
+end
+Utils.unhook_instance_create = function()
+    instance_create_flag = false
+end
+gm.post_script_hook(gm.constants.instance_create_depth, function(self, other, result, args)
+    if instance_create_flag and not Helper.table_has(instance_filter, result.value.object_index) then
+        table.insert(instance_list, result.value)
+    end
+end)
 Initialize(init)
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     ResourceManager = gm.variable_global_get("ResourceManager_object")

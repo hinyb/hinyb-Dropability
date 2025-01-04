@@ -1,9 +1,7 @@
 local drifter_scarp_bar_list = {}
-local miner_heat_bar_list = {}
 CompatibilityPatch = {}
 gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drifter_scarp_bar_list = {}
-    miner_heat_bar_list = {}
 end)
 SkillPickup.add_pre_local_drop_func(function(inst, skill)
     if skill.skill_id == 68 or skill.skill_id == 69 then
@@ -34,7 +32,21 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
             local player = gm.CInstance.instance_id_to_CInstance[args[1].value]
             if not player.dead and player.object_index == gm.constants.oP then
                 gm.call("gml_Script__survivor_miner_create_heat_bar", player, player)
-                miner_heat_bar_list[self.id] = true
+                if player.class ~= 6.0 then
+                    local actor = Instance.wrap(player)
+                    actor:add_callback("onPostStep", "miner_heat_bar_fix", function(inst)
+                        local cache_class = inst.class
+                        inst.class = 6.0
+                        gm.get_script_ref(102162)(inst.value, inst.value, inst.id)
+                        inst.class = cache_class
+                    end)
+                end
+                Instance_ext.add_skill_bullet_hit(player, 0, "miner_heat_bar_fix", function(bullet, attack_info, hit_target)
+                    local skill = gm.array_get(player.skills, 0).active_skill
+                    if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
+                        gm._survivor_miner_heat_add(player, 5)
+                    end
+                end)
                 result.value = gm.call("gml_Script__survivor_miner_find_heat_bar", player, player, args[1].value)
             end
         end
@@ -45,15 +57,6 @@ gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, 
 end)
 gm.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = false
-end)
-gm.post_code_execute("gml_Object_oP_Step_2", function(self, other)
-    if self.class ~= 6 and miner_heat_bar_list[self.id] and self.activity_type ~= 4.0 then
-        local cache_class = self.class
-        self.class = 6.0
-        gm.call("gml_Script__survivor_miner_update_sprites", self, self, self)
-        gm.get_script_ref(102162)(self, self, self.id)
-        self.class = cache_class
-    end
 end)
 -- So weird, it seems like 'self' must be a skill, but in gml_Script__survivor_drifter_create_scrap_bar, it pass an oP. This is really confusing.
 -- And gm.call can't pass 'self' as a YYObjectBase*, might have to use memory.dynamic_cal. So, I decided not to replace the result.
@@ -203,12 +206,13 @@ Initialize(function()
         end
     end)
 end)
-gm.get_script_function_address(102094):add(526):patch_byte(0xE9):apply()
-gm.get_script_function_address(102094):add(526):add(1):patch_byte(0x13):apply()
-gm.get_script_function_address(102094):add(526):add(2):patch_byte(0x02):apply()
-gm.get_script_function_address(102094):add(526):add(3):patch_byte(0x00):apply()
-gm.get_script_function_address(102094):add(526):add(4):patch_byte(0x00):apply()
-gm.get_script_function_address(102094):add(526):add(5):patch_byte(0x90):apply()
+local huntress_step = gm.get_script_function_address(102094):add(526)
+huntress_step:patch_byte(0xE9):apply()
+huntress_step:add(1):patch_byte(0x13):apply()
+huntress_step:add(2):patch_byte(0x02):apply()
+huntress_step:add(3):patch_byte(0x00):apply()
+huntress_step:add(4):patch_byte(0x00):apply()
+huntress_step:add(5):patch_byte(0x90):apply()
 
 -- handX 
 local get_hand_skill_num = function(skills, slot_index)
@@ -236,15 +240,15 @@ memory.dynamic_hook_mid("handX_fix_actor_death", {"rdx", "[rbp+0x1F88]"}, {"int"
                 if total_num == 1 then
                     drone.angle_offsest = 0
                 else
-                    local step = 90 / (total_num - 1)
+                    local step = 270 / (total_num - 1)
                     drone.angle_offsest = (before_num - (total_num - 1) / 2) * step
                 end
             end
         end
         args[1]:set(-1) -- to override original, hope this may not break something
     end)
-memory.dynamic_hook_mid("handX_fix_find_skill", {"rbp+410h-340h", "[rbp+410h+10h+8h]"}, {"RValue*", "CInstance*"},
-    0, gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(4676), function(args)
+memory.dynamic_hook_mid("handX_fix_find_skill", {"rbp+410h-340h", "[rbp+410h+10h+8h]"}, {"RValue*", "CInstance*"}, 0,
+    gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(4676), function(args)
         local actor = type(args[2].parent) == "number" and gm.CInstance.instance_id_to_CInstance[args[2].parent] or
                           args[2].parent
         local skills = actor.skills
@@ -261,7 +265,7 @@ memory.dynamic_hook_mid("handX_fix_find_drone", {"[rbp+70h+10h]"}, {"CInstance*"
     gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(614), function(args)
         local actor = type(args[1].parent) == "number" and gm.CInstance.instance_id_to_CInstance[args[1].parent] or
                           args[1].parent
-        if actor.hand_drone_type ~= args[1].drone_type then
+        if actor.last_use_hand_drone_type ~= args[1].drone_type then
             return target
         end
     end)
@@ -275,7 +279,8 @@ gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, ar
     local skill = gm.array_get(self.skills, args[1].value).active_skill
     local drone_type = Utils.get_handy_drone_type(skill.skill_id)
     if drone_type then
-        self.hand_drone_type = drone_type
+        self.last_use_hand_drone_type = drone_type
     end
 end)
+
 return CompatibilityPatch

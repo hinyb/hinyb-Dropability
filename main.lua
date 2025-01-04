@@ -19,9 +19,10 @@ require("CompatibilityPatch")
 require("SkillModifier")
 require("SkillModifierData")
 require("SkillModifierManager")
-require("Dynamic_calls")
-require("Instance_ext")
+require("Dynamic")
 require("Callback_ext")
+require("Callable_call")
+require("Instance_ext")
 require("GameStyleManager")
 
 mods["MGReturns-ENVY"].auto()
@@ -33,9 +34,10 @@ public_things = {
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,
     ["SkillModifierManager"] = SkillModifierManager,
-    ["Dynamic_calls"] = Dynamic_calls,
+    ["Dynamic"] = Dynamic,
     ["Instance_ext"] = Instance_ext,
     ["Callback_ext"] = Callback_ext,
+    ["Callable_call"] = Callable_call,
     ["CompatibilityPatch"] = CompatibilityPatch,
     ["GameStyleManager"] = GameStyleManager
 
