@@ -57,7 +57,6 @@ function Instance_ext.remove_post_other_fire(self, name)
 end
 
 function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_func, pre_func, post_func)
-    local last_state = 0
     local last_activity_state = 0
     local name = name .. tostring(slot_index)
     Instance_ext.add_callback(actor, "pre_skill_activate", name, function(actor, slot_index_)
@@ -113,7 +112,7 @@ function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_f
 end
 
 function Instance_ext.remove_skill_captrue(actor, slot_index, name)
-    name = name .. tostring(slot_index)
+    local name = name .. tostring(slot_index)
     Instance_ext.remove_callback(actor, "pre_skill_activate", name)
     Instance_ext.remove_callback(actor, "post_skill_activate", name)
 end
@@ -142,7 +141,7 @@ local bullet_list = {
     [gm.constants.oBulletAttack] = true
 }
 
-function Instance_ext.add_skill_attack_captrue(actor, slot_index, name, deal_func, pre_func, post_func)
+function Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, deal_func, pre_func, post_func)
     Instance_ext.add_skill_instance_captrue(actor, slot_index, name, function(inst)
         if bullet_list[inst.object_index] then
             deal_func(inst)
@@ -168,18 +167,18 @@ function Instance_ext.add_skill_attack_captrue(actor, slot_index, name, deal_fun
 end
 
 function Instance_ext.add_skill_bullet_attack(actor, slot_index, name, deal_func, pre_func, post_func)
-    Instance_ext.add_skill_attack_captrue(actor, slot_index, name, function(attack)
+    Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, function(attack)
         Instance_ext.add_callback(attack, "pre_damager_attack_process", name, deal_func)
     end, pre_func, post_func)
 end
 
 function Instance_ext.add_skill_bullet_hit(actor, slot_index, name, deal_func, pre_func, post_func)
-    Instance_ext.add_skill_attack_captrue(actor, slot_index, name, function(attack)
+    Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, function(attack)
         Instance_ext.add_callback(attack, "pre_damager_hit_process", name, deal_func)
     end, pre_func, post_func)
 end
 function Instance_ext.add_skill_bullet_kill(actor, slot_index, name, deal_func, pre_func, post_func)
-    Instance_ext.add_skill_attack_captrue(actor, slot_index, name, function(attack)
+    Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, function(attack)
         Instance_ext.add_callback(attack, "post_bullet_kill_proc", name, deal_func)
     end, pre_func, post_func)
 end

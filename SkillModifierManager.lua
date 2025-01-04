@@ -46,7 +46,7 @@ SkillModifierManager.add_modifier = function(skill, modifier_name, ...)
         gm.array_push(arr_modifier, params[i])
     end
     gm.array_push(skill.ctm_arr_modifiers, arr_modifier)
-    local modifier_index = gm.array_length(skill.ctm_arr_modifiers) - 1
+    local modifier_index = math.floor(gm.array_length(skill.ctm_arr_modifiers) - 1)
     local data = SkillModifierManager.get_or_create_modifier_data(skill, modifier_index)
     modifier.add_func(data, modifier_index, table.unpack(params))
 end
@@ -105,6 +105,12 @@ SkillModifierManager.get_random_modifier_name_with_check = function(skill)
     local random_modifier = modifier_pool[random_modifier_name]
     return random_modifier.check_func(skill) and random_modifier_name or
                SkillModifierManager.get_random_modifier_name_with_check(skill)
+end
+SkillModifierManager.get_random_modifier_name_with_monster_check = function(skill)
+    local random_modifier_name = SkillModifierManager.get_random_modifier_name_with_check()
+    local random_modifier = modifier_pool[random_modifier_name]
+    return random_modifier.monster_check_func(skill) and random_modifier_name or
+               SkillModifierManager.get_random_modifier_name_with_monster_check(skill)
 end
 gm.post_script_hook(gm.constants.run_destroy, function(self, other, result, args)
     skills_data = {}

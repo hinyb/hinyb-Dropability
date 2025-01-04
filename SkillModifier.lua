@@ -41,3 +41,8 @@ end
 function SkillModifier:set_check_func(fn)
     self.check_func = fn
 end
+-- be careful the param maybe table skill_params(table) or skill(YYObjectBase*)
+---@param fn function(skill) The function used to check if the modifier can be added.
+function SkillModifier:set_monster_check_func(fn)
+    self.monster_check_func = fn
+end

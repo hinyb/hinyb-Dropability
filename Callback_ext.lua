@@ -32,6 +32,7 @@ function Callback_ext.remove_post_callback(callback_id, name)
         end
     end
 end
+
 function Callback_ext.add_capture_instance(callback_id, name, deal_func, check_func, pre_ext_func, post_ext_func)
     check_func = check_func or function(...)
         return true
