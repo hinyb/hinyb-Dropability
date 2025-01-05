@@ -37,14 +37,15 @@ local cached_dup_num
 local pickup_is_dropped = false
 gm.pre_script_hook(gm.constants.item_give_internal, function(self, other, result, args)
     if (cached_dup_num ~= nil) then
-        gm.array_set(other.inventory_item_stack, 95, cached_dup_num)
+        gm.array_set(args[1].value.inventory_item_stack, 95, cached_dup_num)
     end
 end)
 gm.pre_script_hook(gm.constants.item_give, function(self, other, result, args)
+    local actor = args[1].value
     for index, item_id in pairs(drop_item_id_list) do
-        if (item_id == self.id) then
-            cached_dup_num = gm.array_get(other.inventory_item_stack, 95)
-            gm.array_set(other.inventory_item_stack, 95, 0)
+        if (item_id == actor.id) then
+            cached_dup_num = gm.array_get(actor.inventory_item_stack, 95)
+            gm.array_set(actor.inventory_item_stack, 95, 0)
             table.remove(drop_item_id_list, index)
             pickup_is_dropped = true
         end

@@ -107,7 +107,7 @@ SkillModifierManager.get_random_modifier_name_with_check = function(skill)
                SkillModifierManager.get_random_modifier_name_with_check(skill)
 end
 SkillModifierManager.get_random_modifier_name_with_monster_check = function(skill)
-    local random_modifier_name = SkillModifierManager.get_random_modifier_name_with_check()
+    local random_modifier_name = SkillModifierManager.get_random_modifier_name_with_check(skill)
     local random_modifier = modifier_pool[random_modifier_name]
     return random_modifier.monster_check_func(skill) and random_modifier_name or
                SkillModifierManager.get_random_modifier_name_with_monster_check(skill)

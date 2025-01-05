@@ -565,10 +565,6 @@ local function init()
         end
     end
 end
-Utils.is_custom_object = function(object_index)
-    local is_customobject = gm.variable_global_get("is_customobject")
-    return gm.ds_map_find_value(is_customobject, object_index)
-end
 Utils.get_inst_safe = function (inst)
     return type(inst) == "number" and gm.CInstance.instance_id_to_CInstance[inst] or inst
 end

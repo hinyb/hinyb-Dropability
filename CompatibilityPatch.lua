@@ -6,8 +6,10 @@ end)
 SkillPickup.add_pre_local_drop_func(function(inst, skill)
     if skill.skill_id == 68 or skill.skill_id == 69 then
         local drone = gm.call("gml_Script__survivor_sniper_find_drone", inst, inst, inst)
-        drone:instance_destroy_sync()
-        gm.instance_destroy(drone)
+        if type(drone) ~= "number" then
+            drone:instance_destroy_sync()
+            gm.instance_destroy(drone)
+        end
     end
 end)
 gm.post_script_hook(gm.constants._survivor_sniper_find_drone, function(self, other, result, args)
@@ -30,23 +32,17 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
     if not miner_heat_bar_flag then
         if result.value == -4 or result.value == 0 then
             local player = gm.CInstance.instance_id_to_CInstance[args[1].value]
-            if not player.dead and player.object_index == gm.constants.oP then
+            if not player.dead then
                 gm.call("gml_Script__survivor_miner_create_heat_bar", player, player)
                 if player.class ~= 6.0 then
                     local actor = Instance.wrap(player)
                     actor:add_callback("onPostStep", "miner_heat_bar_fix", function(inst)
                         local cache_class = inst.class
                         inst.class = 6.0
-                        gm.get_script_ref(102162)(inst.value, inst.value, inst.id)
+                        gm.get_script_ref(102162)(inst.value, inst.value, inst.value)
                         inst.class = cache_class
                     end)
                 end
-                Instance_ext.add_skill_bullet_hit(player, 0, "miner_heat_bar_fix", function(bullet, attack_info, hit_target)
-                    local skill = gm.array_get(player.skills, 0).active_skill
-                    if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
-                        gm._survivor_miner_heat_add(player, 5)
-                    end
-                end)
                 result.value = gm.call("gml_Script__survivor_miner_find_heat_bar", player, player, args[1].value)
             end
         end
@@ -57,6 +53,12 @@ gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, 
 end)
 gm.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = false
+    Instance_ext.add_skill_bullet_hit(self, 0, "miner_heat_bar_fix", function(bullet, attack_info, hit_target)
+        local skill = gm.array_get(self.skills, 0).active_skill
+        if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
+            gm._survivor_miner_heat_add(self, 5)
+        end
+    end)
 end)
 -- So weird, it seems like 'self' must be a skill, but in gml_Script__survivor_drifter_create_scrap_bar, it pass an oP. This is really confusing.
 -- And gm.call can't pass 'self' as a YYObjectBase*, might have to use memory.dynamic_cal. So, I decided not to replace the result.
@@ -64,9 +66,10 @@ local drifter_scrap_bar_flag = false
 gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self, other, result, args)
     if not drifter_scrap_bar_flag then
         if result.value == -4 or result.value == 0 then
-            if self.dead ~= 1 then
-                gm.call("gml_Script__survivor_drifter_create_scrap_bar", args[1].value, args[1].value)
-                drifter_scarp_bar_list[self.id] = true
+            if args[1].value.dead ~= 1 then
+                local player = args[1].value
+                gm.call("gml_Script__survivor_drifter_create_scrap_bar", player, player)
+                drifter_scarp_bar_list[args[1].value.id] = true
             end
         end
     end
@@ -76,6 +79,10 @@ gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(sel
 end)
 gm.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
     drifter_scrap_bar_flag = false
+    Instance_ext.add_skill_bullet_attack(self, 0, "drifter_scrap_bar_fix", function(bullet, attack_info, hit_list)
+        local attack_info_ = Attack_Info.wrap(attack_info)
+        attack_info_:set_attack_flags(Attack_Info.ATTACK_FLAG.drifter_scrap_bit1, true)
+    end)
 end)
 memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h+18h]"}, {"RValue*", "CInstance*"}, 0,
     gm.get_object_function_address("gml_Object_oDrifterRec_Collision_oP"):add(480), function(args)

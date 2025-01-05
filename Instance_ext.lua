@@ -281,8 +281,8 @@ gm.pre_script_hook(gm.constants.damager_attack_process, function(self, other, re
             return flag
         end
     end
-    if args[1].value.parent then
-        local parent = args[1].value.parent
+    local parent = args[1].value.parent
+    if parent and type(parent) ~= "number" then
         if callbacks[parent.id] and callbacks[parent.id]["pre_damager_attack_process_parent"] then
             local flag = true
             for _, func in pairs(callbacks[parent.id]["pre_damager_attack_process_parent"]) do
@@ -306,17 +306,19 @@ end)
 { name = 'is_attack_authority' }
 ]]
 gm.pre_script_hook(gm.constants.damager_hit_process, function(self, other, result, args)
-    if callbacks[self.id] and callbacks[self.id]["pre_damager_hit_process"] then
-        local flag = true
-        for _, func in pairs(callbacks[self.id]["pre_damager_hit_process"]) do
-            if func(self, args[1].value, args[2].value) == false then
-                flag = false
+    if self then
+        if callbacks[self.id] and callbacks[self.id]["pre_damager_hit_process"] then
+            local flag = true
+            for _, func in pairs(callbacks[self.id]["pre_damager_hit_process"]) do
+                if func(self, args[1].value, args[2].value) == false then
+                    flag = false
+                end
             end
-        end
-        args[6].value = args[1].value.damage
-        args[7].value = args[1].value.critical
-        if flag == false then
-            return flag
+            args[6].value = args[1].value.damage
+            args[7].value = args[1].value.critical
+            if flag == false then
+                return flag
+            end
         end
     end
 end)
@@ -343,25 +345,31 @@ gm.post_script_hook(gm.constants.skill_activate, function(self, other, result, a
 end)
 
 gm.post_script_hook(gm.constants.fire_bullet, function(self, other, result, args)
-    if callbacks[other.id] and callbacks[other.id]["post_other_fire_bullet"] then
-        for _, func in pairs(callbacks[other.id]["post_other_fire_bullet"]) do
-            func(self, other, gm.variable_global_get("attack_bullet"))
+    if other then
+        if callbacks[other.id] and callbacks[other.id]["post_other_fire_bullet"] then
+            for _, func in pairs(callbacks[other.id]["post_other_fire_bullet"]) do
+                func(self, other, gm.variable_global_get("attack_bullet"))
+            end
         end
     end
 end)
 
 gm.post_script_hook(gm.constants.fire_direct, function(self, other, result, args)
-    if callbacks[other.id] and callbacks[other.id]["post_other_fire_direct"] then
-        for _, func in pairs(callbacks[other.id]["post_other_fire_direct"]) do
-            func(self, other, gm.variable_global_get("attack_bullet"))
+    if other then
+        if callbacks[other.id] and callbacks[other.id]["post_other_fire_direct"] then
+            for _, func in pairs(callbacks[other.id]["post_other_fire_direct"]) do
+                func(self, other, gm.variable_global_get("attack_bullet"))
+            end
         end
     end
 end)
 
 gm.post_script_hook(gm.constants.fire_explosion, function(self, other, result, args)
-    if callbacks[other.id] and callbacks[other.id]["post_other_fire_explosion"] then
-        for _, func in pairs(callbacks[other.id]["post_other_fire_explosion"]) do
-            func(self, other, gm.variable_global_get("attack_bullet"))
+    if other then
+        if callbacks[other.id] and callbacks[other.id]["post_other_fire_explosion"] then
+            for _, func in pairs(callbacks[other.id]["post_other_fire_explosion"]) do
+                func(self, other, gm.variable_global_get("attack_bullet"))
+            end
         end
     end
 end)
@@ -380,9 +388,8 @@ gm.pre_script_hook(gm.constants.actor_activity_set, function(self, other, result
         return flag
     end
 end)
-
-memory.dynamic_hook_mid("test4", {"rcx", "[rbp+9E8h]"}, {"RValue*", "CInstance*"}, 0,
-    gm.get_script_function_address(gm.constants.damager_attack_process):add(27381), function(args)
+memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"rsp+0AD0h-A60h", "[rbp+9E8h]"}, {"RValue*", "CInstance*"}, 0,
+    gm.get_script_function_address(gm.constants.damager_attack_process):add(27333), function(args)
         local bullet_callbacks = callbacks[args[2].id]
         if bullet_callbacks == nil or bullet_callbacks["post_bullet_kill_proc"] == nil then
             if callbacks[args[1].value.id] and callbacks[args[1].value.id]["post_be_kill_proc"] then
@@ -395,10 +402,8 @@ memory.dynamic_hook_mid("test4", {"rcx", "[rbp+9E8h]"}, {"RValue*", "CInstance*"
         end
         callbacks[args[1].value.id]["post_be_kill_proc"] = bullet_callbacks["post_bullet_kill_proc"]
     end)
-
 Callback_ext.add_post_callback(40, "on_all_KillProc_callback", function(self, other, result, args)
     if callbacks[args[2].value.id] and callbacks[args[2].value.id]["post_be_kill_proc"] then
-        Utils.log_information(callbacks)
         for _, func in pairs(callbacks[args[2].value.id]["post_be_kill_proc"]) do
             func(args[2].value, args[3].value)
         end

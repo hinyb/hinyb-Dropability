@@ -9,6 +9,9 @@ end
 SkillModifier.check_func = function()
     return true
 end
+SkillModifier.monster_check_func = function()
+    return true
+end
 function SkillModifier.new(modifer_name, weight)
     local self = setmetatable({}, SkillModifier)
     self.modifier_name = modifer_name
@@ -45,4 +48,8 @@ end
 ---@param fn function(skill) The function used to check if the modifier can be added.
 function SkillModifier:set_monster_check_func(fn)
     self.monster_check_func = fn
+end
+---@param fn function(skillPickup, modifier_index, ...) The function will be called when adding modifier to a skillPickup.
+function SkillModifier:set_add_inst_func(fn)
+    self.add_inst_func = fn
 end

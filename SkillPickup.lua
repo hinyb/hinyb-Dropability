@@ -28,7 +28,7 @@ local skill_override_check_funcs = {}
 SkillPickup.add_skill_override_check_func = function(fn)
     skill_override_check_funcs[#skill_override_check_funcs + 1] = fn
 end
-SkillPickup.add_skill_override_check_func(function (actor, skill)
+SkillPickup.add_skill_override_check_func(function(actor, skill)
     return skill.skill_id == 0
 end)
 local function can_skill_override(actor, skill)
@@ -38,7 +38,7 @@ local function can_skill_override(actor, skill)
         end
     end
 end
-SkillPickup.add_skill_check_func(function (actor, skill)
+SkillPickup.add_skill_check_func(function(actor, skill)
     if skill.skill_id == 16 or skill.skill_id == 70 or skill.skill_id == 71 then
         return false
     end
@@ -76,7 +76,7 @@ SkillPickup.add_post_create_func = function(fn)
     post_create_funcs[#post_create_funcs + 1] = fn
 end
 SkillPickup.skillPickup_object_index = 0
-local function init_skillPickup(target, skill_params)
+local function init_skillPickup(target, skill_params, x, y)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
     target.sprite_index = default_skill:get(4)
     target.image_index = default_skill:get(5)
@@ -84,6 +84,18 @@ local function init_skillPickup(target, skill_params)
     for k, v in pairs(skill_params) do
         if type(v) == "table" then
             target[k] = Utils.create_array_from_table(v)
+            if k == "ctm_arr_modifiers" then
+                for modifier_index, modifier_table in pairs(v) do
+                    local modifier = SkillModifierManager.get_modifier(modifier_table[1])
+                    if modifier.add_inst_func then
+                        local params = {}
+                        for i = 2, #modifier_table do
+                            params[#params + 1] = modifier_table[i]
+                        end
+                        modifier.add_inst_func(target, skill_params, x, y, modifier_index, table.unpack(params))
+                    end
+                end
+            end
         else
             target[k] = v
             if k == "subimage" then
@@ -170,7 +182,7 @@ local function init()
     local drop_skill_send
     local function drop_skill(x, y, skill_params)
         local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
-        init_skillPickup(skill, skill_params)
+        init_skillPickup(skill, skill_params, x - 20, y - 20)
         gm.call("gml_Script_interactable_sync", skill, skill)
         local sync_message = drop_skill_send(skill_params)
         sync_message:write_instance(skill)
@@ -225,7 +237,7 @@ local function init()
                     pre_create_funcs[i](skill_params)
                 end
                 local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
-                init_skillPickup(skill, skill_params)
+                init_skillPickup(skill, skill_params, x - 20, y - 20)
             end
             activate_skill = function(Player, Interactable)
                 set_skill(Player, Interactable)
