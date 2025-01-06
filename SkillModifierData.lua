@@ -1,10 +1,17 @@
 SkillModifierData = {}
 SkillModifierData.__index = SkillModifierData
 -- may need improve 
-function SkillModifierData.new(skill)
+function SkillModifierData.new(skill, modifier_name)
     local self = setmetatable({}, SkillModifierData)
     self.skill = skill
+    self.modifier_name = modifier_name
     return self
+end
+---@param modifier_index number If pass the modifier_index, the id will be an unique id.
+function SkillModifierData:get_id(modifier_index)
+    local id = self.modifier_name .. Utils.to_string_with_floor(self.skill.slot_index)
+    id = modifier_index and id .. tostring(modifier_index) or id
+    return id
 end
 ---@param attr_str string The name of attribute.
 ---@param fn function (origin_value, modifier_data) the function used to change attribute.
@@ -90,23 +97,23 @@ end
 function SkillModifierData:remove_post_local_can_activate_callback()
     self.post_can_activate_funcs = nil
 end
-function SkillModifierData:add_pre_drop_callback(fn)
+function SkillModifierData:add_pre_local_drop_callback(fn)
     if self.pre_drop_funcs == nil then
         self.pre_drop_funcs = {}
     end
     table.insert(self.pre_drop_funcs, fn)
 end
-function SkillModifierData:remove_pre_drop_callback()
+function SkillModifierData:remove_pre_local_drop_callback()
     self.pre_drop_funcs = nil
 end
 ---@param fn function (actor, skill_params)
-function SkillModifierData:add_post_drop_callback(fn)
+function SkillModifierData:add_post_local_drop_callback(fn)
     if self.post_drop_funcs == nil then
         self.post_drop_funcs = {}
     end
     table.insert(self.post_drop_funcs, fn)
 end
-function SkillModifierData:remove_post_drop_callback()
+function SkillModifierData:remove_post_local_drop_callback()
     self.post_drop_funcs = nil
 end
 local post_drop_callback = {}

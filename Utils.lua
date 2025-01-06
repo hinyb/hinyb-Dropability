@@ -27,6 +27,9 @@ local skill_id_to_slot = {
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
 Utils = {}
+Utils.to_string_with_floor = function (number)
+    return tostring(math.floor(number))
+end
 Utils.get_actual_position = function(actor)
     if actor.following_player and actor.following_player ~= -4 then
         return actor.following_player.x, actor.following_player.y
@@ -169,7 +172,7 @@ end
 Utils.wrap_skill = function(skill_id)
     local skill = Class.SKILL:get(skill_id)
     if skill == nil or type(skill) == "number" then
-        log.error("Can't get wrap skill with given skill_id" .. tostring(skill))
+        log.error("Can't get wrap skill with given skill_id" .. tostring(skill_id))
     end
     return {
         skill_id = skill_id,
@@ -401,7 +404,8 @@ Utils.param_type = {
     table = 3,
     int = 4,
     half = 5,
-    string = 6
+    string = 6,
+    va_list = 7
 }
 -- May need use this to code cleanup
 -- It seems like _mod_net_message_getUniqueID's unique id is only unique within each mod
@@ -444,6 +448,11 @@ Utils.create_packet = function(onReceived, type_table)
             elseif type_table[i] == Utils.param_type.string then
                 value = message:read_string()
                 table.insert(params_table, value)
+            elseif type_table[i] == Utils.param_type.va_list then
+                local param_num = message:read_byte()
+                for _ = 1, param_num do
+                    table.insert(value, message:read_float())
+                end
             else
                 log.error("Can't handle" .. type_table[i])
             end
@@ -454,6 +463,12 @@ Utils.create_packet = function(onReceived, type_table)
                     sync_message:write_int(value)
                 elseif type_table[i] == Utils.param_type.half then
                     message:write_half(value)
+                elseif type_table[i] == Utils.param_type.va_list then
+                    sync_message:write_byte(#value)
+                    for j = 1, #value do
+                        -- write_double
+                        sync_message:write_float(value[j])
+                    end
                 else
                     sync_message:write_string(value)
                 end
@@ -543,9 +558,6 @@ local function init()
     end)
     Utils.sync_instance_send = function(inst, table_num, sync_table)
         local sync_message = sync_instance_packet:message_begin()
-        if not gm.instance_exists(inst.id) then
-            log.error("instance doesn't exist")
-        end
         sync_message:write_instance(inst)
         sync_message:write_int(table_num)
         for k, v in pairs(sync_table) do

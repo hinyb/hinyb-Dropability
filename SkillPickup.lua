@@ -53,13 +53,7 @@ SkillPickup.drop_skill = function(player, skill)
         pre_local_drop_funcs[i](player, skill)
     end
     local skill_params = Utils.get_active_skill_diff(skill)
-    if skill.ctm_arr_modifiers then
-        local ctm_arr_modifiers = Array.wrap(skill.ctm_arr_modifiers)
-        for i = 0, ctm_arr_modifiers:size() - 1 do
-            SkillModifierManager.remove_modifier(skill, ctm_arr_modifiers:get(i):get(0), i)
-        end
-    end
-    gm.actor_skill_set(player, skill.slot_index, 0)
+    SkillModifierManager.clear_and_set_skill_sync(player, skill.slot_index, 0)
     local x, y = Utils.get_actual_position(player)
     SkillPickup.skill_create(x, y, skill_params)
     for i = 1, #post_local_drop_funcs do
@@ -128,7 +122,7 @@ local set_skill = function(player, interactable)
             for j = 1, modifier:size() - 1 do
                 table.insert(modifier_args, modifier:get(j))
             end
-            SkillModifierManager.add_modifier(skill, modifier:get(0), table.unpack(modifier_args))
+            SkillModifierManager.add_modifier_local(skill, modifier:get(0), table.unpack(modifier_args))
         end
     end
     gm.instance_destroy(interactable.id)
@@ -209,7 +203,7 @@ local function init()
             drop_skill(player.x, player.y, skill_params)
         else
             local skill = message:read_instance().value
-            init_skillPickup(skill, skill_params)
+            init_skillPickup(skill, skill_params, skill.x, skill.y)
         end
     end)
     drop_skill_send = function(skill_params)

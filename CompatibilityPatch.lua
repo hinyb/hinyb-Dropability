@@ -149,6 +149,8 @@ local sham_list = {
 }
 gm.pre_script_hook(gm.constants.find_target, function(self, other, result, args)
     if self.team == 1 and sham_list[self.object_index] then
+        -- this may be used to update the target
+        gm.call("gml_Script___target_marker_move_enemy", self, self)
         result.value = 0
         local list = gm.ds_list_create();
         gm.collision_circle_list(self.x, self.y, self.target_range, gm.constants.oActorTargetEnemy, false, false, list,

@@ -15,7 +15,8 @@ local callbacks_check_table = {
     post_other_fire_direct = true,
     post_other_fire_bullet = true,
     post_bullet_kill_proc = true,
-    pre_damager_hit_process = true
+    pre_damager_hit_process = true,
+    pre_player_level_up = true
 }
 function Instance_ext.add_on_anim_end(self, name, fn)
     name = name .. "on_anim_end"
@@ -58,7 +59,7 @@ end
 
 function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_func, pre_func, post_func)
     local last_activity_state = 0
-    local name = name .. tostring(slot_index)
+    local name = name .. Utils.to_string_with_floor(slot_index)
     Instance_ext.add_callback(actor, "pre_skill_activate", name, function(actor, slot_index_)
         if slot_index_ ~= slot_index then
             return
@@ -84,9 +85,10 @@ function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_f
                     return args[3].value == actor
                 end
                 local script_name = actor.__activity_handler_func.callable_value.script_name
-                Callable_call.add_capture_instance(script_name, name .. tostring(actor.id), deal_func, check_func)
+                Callable_call.add_capture_instance(script_name, name .. Utils.to_string_with_floor(actor.id), deal_func,
+                    check_func)
                 Instance_ext.add_callback(actor, "pre_actor_activity_set", name, function()
-                    Callable_call.remove_capture_instance(script_name, name .. tostring(actor.id))
+                    Callable_call.remove_capture_instance(script_name, name .. Utils.to_string_with_floor(actor.id))
                     Instance_ext.remove_callback(actor, "pre_actor_activity_set", name)
                 end)
             end
@@ -96,7 +98,7 @@ function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_f
             local check_func = function(self, other, result, args)
                 return args[2].value == actor
             end
-            local name = name .. tostring(actor.id)
+            local name = name .. Utils.to_string_with_floor(actor.id)
             Callback_ext.add_capture_instance(state_array:get(2), name, deal_func, check_func)
             Callback_ext.add_capture_instance(state_array:get(4), name, deal_func, check_func)
             Callback_ext.add_capture_instance(state_array:get(3), name, deal_func, check_func, nil, function()
@@ -112,7 +114,7 @@ function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_f
 end
 
 function Instance_ext.remove_skill_captrue(actor, slot_index, name)
-    local name = name .. tostring(slot_index)
+    local name = name .. Utils.to_string_with_floor(slot_index)
     Instance_ext.remove_callback(actor, "pre_skill_activate", name)
     Instance_ext.remove_callback(actor, "post_skill_activate", name)
 end
@@ -185,6 +187,11 @@ end
 function Instance_ext.add_callback(self, callback, name, fn)
     if not callbacks_check_table[callback] then
         log.error("Can't add Instance_ext callback", 2)
+    end
+    if callback == "pre_player_level_up" then
+        if self.object_index ~= gm.constants.oP then
+            log.error("Can't add a player callback to non-player", 2)
+        end
     end
     if callbacks[self.id] == nil then
         callbacks[self.id] = {}
@@ -388,6 +395,19 @@ gm.pre_script_hook(gm.constants.actor_activity_set, function(self, other, result
         return flag
     end
 end)
+gm.pre_code_execute("gml_Object_oP_Other_15", function(self, other)
+    local player = self
+    if callbacks[player.id] and callbacks[player.id]["pre_player_level_up"] then
+        local flag = true
+        for _, func in pairs(callbacks[player.id]["pre_player_level_up"]) do
+            if func(player) == false then
+                flag = false
+            end
+        end
+        return flag
+    end
+end)
+
 memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"rsp+0AD0h-A60h", "[rbp+9E8h]"}, {"RValue*", "CInstance*"}, 0,
     gm.get_script_function_address(gm.constants.damager_attack_process):add(27333), function(args)
         local bullet_callbacks = callbacks[args[2].id]

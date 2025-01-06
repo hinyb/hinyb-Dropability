@@ -1,6 +1,7 @@
 v3.1.8
 * Fix handX completely. Now you can have multiply handX.
     * But the fixing way may break the other mods.
+* Fix a lot of sync bug. 
 
 v3.1.7 **Final version of 2024**
 * Fix drop at incorrect place when player is dead.
