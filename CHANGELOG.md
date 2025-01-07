@@ -1,3 +1,7 @@
+v3.1.9
+* Fixed some hp bars show the wrong color.
+* Fix sync bugs in the new track API.
+
 v3.1.8
 * Fix handX completely. Now you can have multiply handX.
     * But the fixing way may break the other mods.

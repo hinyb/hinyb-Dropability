@@ -136,8 +136,7 @@ local function init()
         local inst = args[1].value
         if inst.__object_index == skillPickup.value then
             local actor = args[2].value
-            if actor.object_index == gm.constants.oP and actor.is_local or actor.object_index ~= gm.constants.oP and
-                not Net.is_client() then
+            if actor.is_local then
                 if inst.skill_id ~= nil and inst.slot_index ~= nil then
                     local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
                     if not can_skill_override(actor, skill) then

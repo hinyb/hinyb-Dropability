@@ -53,12 +53,15 @@ gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, 
 end)
 gm.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = false
-    Instance_ext.add_skill_bullet_hit(self, 0, "miner_heat_bar_fix", function(bullet, attack_info, hit_target)
-        local skill = gm.array_get(self.skills, 0).active_skill
-        if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
-            gm._survivor_miner_heat_add(self, 5)
-        end
-    end)
+    -- I think this is safe to use.
+    -- But it may have issues, if anything happens, please let me know.
+    Instance_ext.add_skill_bullet_fake_hit_actually_attack(self, 0, "miner_heat_bar_fix",
+        function(attack_info, hit_target)
+            local skill = gm.array_get(self.skills, 0).active_skill
+            if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
+                gm.call("gml_Script__survivor_miner_heat_add", self, self, self, 5)
+            end
+        end)
 end)
 -- So weird, it seems like 'self' must be a skill, but in gml_Script__survivor_drifter_create_scrap_bar, it pass an oP. This is really confusing.
 -- And gm.call can't pass 'self' as a YYObjectBase*, might have to use memory.dynamic_cal. So, I decided not to replace the result.
@@ -79,9 +82,11 @@ gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(sel
 end)
 gm.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
     drifter_scrap_bar_flag = false
-    Instance_ext.add_skill_bullet_attack(self, 0, "drifter_scrap_bar_fix", function(bullet, attack_info, hit_list)
-        local attack_info_ = Attack_Info.wrap(attack_info)
-        attack_info_:set_attack_flags(Attack_Info.ATTACK_FLAG.drifter_scrap_bit1, true)
+    Instance_ext.add_skill_bullet_callback(self, 0, "drifter_scrap_bar_fix", "attack", function(attack_info, hit_list)
+        if not Net.is_client() then
+            local attack_info_ = Attack_Info.wrap(attack_info)
+            attack_info_:set_attack_flags(Attack_Info.ATTACK_FLAG.drifter_scrap_bit1, true)
+        end
     end)
 end)
 memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h+18h]"}, {"RValue*", "CInstance*"}, 0,
@@ -122,9 +127,10 @@ CompatibilityPatch.set_compat = function(self)
     self.spat = -4 -- SpitterZ
     self.totem_spawn_id = gm.array_create(0, 0) -- monsterShamGX
     ---- for monster ----
+    initialize_number(self, "input_player_index")
     initialize_number(self, "bunker")
     initialize_number(self, "aiming")
-    initialize_number(self, "is_local")
+    initialize_number(self, "is_local", not Net.is_client())
     initialize_number(self, "pause")
     initialize_number(self, "menu_typing")
     initialize_number(self, "class")
@@ -141,36 +147,18 @@ gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
 end)
 
 -- For monsterShamGX
-local sham_list = {
-    [gm.constants.oShamL] = true,
-    [gm.constants.oShamP] = true,
-    [gm.constants.oShamB] = true,
-    [gm.constants.oShamG] = true
-}
-gm.pre_script_hook(gm.constants.find_target, function(self, other, result, args)
-    if self.team == 1 and sham_list[self.object_index] then
-        -- this may be used to update the target
-        gm.call("gml_Script___target_marker_move_enemy", self, self)
-        result.value = 0
-        local list = gm.ds_list_create();
-        gm.collision_circle_list(self.x, self.y, self.target_range, gm.constants.oActorTargetEnemy, false, false, list,
-            true);
-        for i = 0, gm.ds_list_size(list) - 1 do
-            local target = gm.ds_list_find_value(list, i)
-            if target.parent.team ~= self.team then
-                self.target = target
-                break
-            end
-        end
-        gm.ds_list_destroy(list);
-        return false
-    end
-end)
 gm.post_script_hook(100561, function(self, other, result, args)
     if math.abs(self.image_index - 6) <= 1e-5 then
         local mobs = Array.wrap(args[1].value.totem_spawn_id)
         for i = 0, mobs:size() - 1 do
-            mobs:get(i).team = args[1].value.team
+            local mob_warrped = Instance.wrap(mobs:get(i))
+            if not mob_warrped:callback_exists("draw_hp_bar_ally") then
+                mob_warrped:add_callback("onPostDraw", "draw_hp_bar_ally", function(actor)
+                    actor.hud_health_color = 6804360.0
+                    actor:draw_hp_bar_ally()
+                end)
+                mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
+            end
         end
     end
 end)
@@ -182,14 +170,29 @@ gm.post_script_hook(gm.constants.set_state_gml_Object_oArtiSnap_Create_0, functi
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
+-- I think I should use less mid-funcion hook.
+-- So I choose to hook the draw event.
+gm.pre_code_execute("gml_Object_oImpFriend_Draw_0", function(self, other)
+    if self.team ~= 1.0 then
+        self.hud_health_color = 5032411.0
+    end
+end)
 gm.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, other, result, args)
     if self.team ~= 1.0 then
+        Instance.wrap(self):add_callback("onStatRecalc", "hud_health_color_reset", function(actor)
+            actor.hud_health_color = 5032411.0
+        end)
+        GM.actor_queue_dirty(self)
         self.is_character_enemy_targettable = 0.0
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
 gm.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, other, result, args)
     if self.team ~= 1.0 then
+        Instance.wrap(self):add_callback("onStatRecalc", "hud_health_color_reset", function(actor)
+            actor.hud_health_color = 5032411.0
+        end)
+        GM.actor_queue_dirty(self)
         self.is_character_enemy_targettable = 0.0
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end

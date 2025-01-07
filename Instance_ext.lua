@@ -5,7 +5,6 @@ local callbacks_check_table = {
     post_local_drop = true,
     post_local_pickup = true,
     pre_damager_attack_process = true,
-    pre_damager_attack_process_parent = true,
     pre_actor_death_after_hippo = true,
     pre_actor_set_dead = true,
     pre_skill_activate = true,
@@ -57,18 +56,76 @@ function Instance_ext.remove_post_other_fire(self, name)
     Instance_ext.remove_callback(self, "post_other_fire_bullet", name)
 end
 
+-- This might be unnecessary.
+-- But since I've already written it, I'll keep it.
+local skill_captrue_callbacks = {}
 function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_func, pre_func, post_func)
+    local new_to_create_flag = false
+    if skill_captrue_callbacks[actor.id] == nil then
+        skill_captrue_callbacks[actor.id] = {}
+        new_to_create_flag = true
+    end
+    if skill_captrue_callbacks[actor.id][slot_index] == nil then
+        skill_captrue_callbacks[actor.id][slot_index] = {}
+        new_to_create_flag = true
+    end
+    skill_captrue_callbacks[actor.id][slot_index][name] = {
+        deal_func = deal_func,
+        pre_func = pre_func,
+        post_func = post_func
+    }
+    if new_to_create_flag then
+        Instance_ext.add_skill_instance_captrue_internal(actor, slot_index)
+    end
+end
+function Instance_ext.remove_skill_instance_captrue(actor, slot_index, name)
+    if name then
+        skill_captrue_callbacks[actor.id][slot_index][name] = nil
+    else
+        skill_captrue_callbacks[actor.id][slot_index] = {}
+    end
+    if Utils.table_get_length(skill_captrue_callbacks[actor.id][slot_index]) == 0 then
+        skill_captrue_callbacks[actor.id][slot_index] = nil
+        local name = "skill_instance_captrue" .. Utils.to_string_with_floor(slot_index)
+        Instance_ext.remove_callback(actor, "pre_skill_activate", name)
+        Instance_ext.remove_callback(actor, "post_skill_activate", name)
+        if Utils.table_get_length(skill_captrue_callbacks[actor.id]) == 0 then
+            skill_captrue_callbacks[actor.id] = nil
+        end
+    end
+end
+function Instance_ext.add_skill_instance_captrue_internal(actor, slot_index)
     local last_activity_state = 0
-    local name = name .. Utils.to_string_with_floor(slot_index)
+    local name = "skill_instance_captrue" .. Utils.to_string_with_floor(slot_index)
+    local callback_packs = skill_captrue_callbacks[actor.id][slot_index]
+    local deal_func = function(inst)
+        for _, callback_pack in pairs(callback_packs) do
+            callback_pack.deal_func(inst)
+        end
+    end
+    local pre_func = function(actor, slot_index)
+        local do_skip = false
+        for _, callback_pack in pairs(callback_packs) do
+            if callback_pack.pre_func then
+                do_skip = do_skip or callback_pack.pre_func(actor, slot_index) == false
+            end
+        end
+        return not do_skip
+    end
+    local post_func = function(actor, slot_index)
+        for _, callback_pack in pairs(callback_packs) do
+            if callback_pack.post_func then
+                callback_pack.post_func(actor, slot_index)
+            end
+        end
+    end
     Instance_ext.add_callback(actor, "pre_skill_activate", name, function(actor, slot_index_)
         if slot_index_ ~= slot_index then
             return
         end
         Utils.hook_instance_create({gm.constants.oActorTargetEnemy, gm.constants.oActorTargetPlayer})
         last_activity_state = actor.__activity_handler_state
-        if pre_func then
-            return pre_func(actor, slot_index)
-        end
+        return pre_func(actor, slot_index)
     end)
     Instance_ext.add_callback(actor, "post_skill_activate", name, function(actor, slot_index_)
         if slot_index_ ~= slot_index then
@@ -107,16 +164,11 @@ function Instance_ext.add_skill_instance_captrue(actor, slot_index, name, deal_f
                 Callback_ext.remove_capture_instance(state_array:get(3), name)
             end)
         end
-        if post_func then
-            post_func(actor, slot_index)
-        end
+        post_func(actor, slot_index)
     end)
-end
-
-function Instance_ext.remove_skill_captrue(actor, slot_index, name)
-    local name = name .. Utils.to_string_with_floor(slot_index)
-    Instance_ext.remove_callback(actor, "pre_skill_activate", name)
-    Instance_ext.remove_callback(actor, "post_skill_activate", name)
+    Instance_ext.add_callback(actor, "pre_destroy", name, function(actor)
+        skill_captrue_callbacks[actor.id] = nil
+    end)
 end
 
 local black_list = {
@@ -143,7 +195,19 @@ local bullet_list = {
     [gm.constants.oBulletAttack] = true
 }
 
-function Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, deal_func, pre_func, post_func)
+local attack_info_callbacks = {}
+local attack_info_table_order = {"attack", "hit", "kill"}
+local attack_info_table = {}
+for i = 1, #attack_info_table_order do
+    attack_info_table[attack_info_table_order[i]] = true
+end
+local function attack_info_add_callback(attack_info, type, name)
+    if attack_info["attack_info_callbacks_" .. type] == nil then
+        attack_info["attack_info_callbacks_" .. type] = gm.array_create(0, 0)
+    end
+    gm.array_push(attack_info["attack_info_callbacks_" .. type], name)
+end
+function Instance_ext.add_skill_bullet_captrue_local(actor, slot_index, name, deal_func, pre_func, post_func)
     Instance_ext.add_skill_instance_captrue(actor, slot_index, name, function(inst)
         if bullet_list[inst.object_index] then
             deal_func(inst)
@@ -168,22 +232,65 @@ function Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, deal_fun
     end, pre_func, post_func)
 end
 
-function Instance_ext.add_skill_bullet_attack(actor, slot_index, name, deal_func, pre_func, post_func)
-    Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, function(attack)
-        Instance_ext.add_callback(attack, "pre_damager_attack_process", name, deal_func)
+-- damager_attack_process client_send_message proc_server damager_attack_process damager_hit_process
+-- bullet only sync attack_info
+
+-- this function need to be called at all sides, and only trigger at host side.
+function Instance_ext.add_skill_bullet_callback(actor, slot_index, name, callback_id, deal_func, pre_func, post_func)
+    if not attack_info_table[callback_id] then
+        log.error("try to add a non-existed skill_bullet_callback", 2)
+    end
+    Instance_ext.add_skill_bullet_captrue_local(actor, slot_index, name .. callback_id, function(attack)
+        attack_info_add_callback(attack.attack_info, callback_id, name)
+    end, pre_func, post_func)
+    Instance_ext.add_callback(actor, "pre_destroy", name, function(attack)
+        attack_info_callbacks[name] = nil
+    end)
+    if attack_info_callbacks[name] == nil then
+        attack_info_callbacks[name] = {}
+    end
+    attack_info_callbacks[name][callback_id] = deal_func
+end
+
+function Instance_ext.remove_skill_bullet_callback(actor, slot_index, name, callback_id)
+    if callback_id == nil then
+        attack_info_callbacks[name] = nil
+        Instance_ext.remove_skill_instance_captrue(actor, slot_index)
+    else
+        if not attack_info_table[callback_id] then
+            log.error("try to remove a non-existed skill_bullet_callback", 2)
+        end
+        Instance_ext.remove_skill_instance_captrue(actor, slot_index, name .. callback_id)
+        attack_info_callbacks[name][callback_id] = nil
+        if Utils.table_get_length(attack_info_callbacks[name]) == 0 then
+            attack_info_callbacks[name] = nil
+        end
+    end
+end
+
+-- just copied the damager_attack_process, I'm not sure if it will work.
+-- this is both sides.
+function Instance_ext.add_skill_bullet_fake_hit_actually_attack(actor, slot_index, name, deal_func, pre_func, post_func)
+    Instance_ext.add_skill_bullet_callback(actor, slot_index, name, "attack", function(attack_info, hit_list)
+        for i = 0, gm.ds_list_size(hit_list) - 1, 3 do
+            local hit_target = gm.ds_list_find_value(hit_list, i)
+            if type(hit_target) ~= "number" then
+                if Instance.exists(hit_target) then
+                    if hit_target:hit_should_count_towards_total_hit_number_client_and_server() then
+                        if gm.call("gml_Script_object_is", hit_target, hit_target, hit_target, 344) then
+                            if hit_target:attack_collision_resolve() ~= -4 then
+                                deal_func(attack_info, hit_target)
+                            end
+                        else
+                            deal_func(attack_info, hit_target)
+                        end
+                    end
+                end
+            end
+        end
     end, pre_func, post_func)
 end
 
-function Instance_ext.add_skill_bullet_hit(actor, slot_index, name, deal_func, pre_func, post_func)
-    Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, function(attack)
-        Instance_ext.add_callback(attack, "pre_damager_hit_process", name, deal_func)
-    end, pre_func, post_func)
-end
-function Instance_ext.add_skill_bullet_kill(actor, slot_index, name, deal_func, pre_func, post_func)
-    Instance_ext.add_skill_bullet_captrue(actor, slot_index, name, function(attack)
-        Instance_ext.add_callback(attack, "post_bullet_kill_proc", name, deal_func)
-    end, pre_func, post_func)
-end
 function Instance_ext.add_callback(self, callback, name, fn)
     if not callbacks_check_table[callback] then
         log.error("Can't add Instance_ext callback", 2)
@@ -276,29 +383,47 @@ gm.pre_script_hook(gm.constants.actor_set_dead, function(self, other, result, ar
     end
 end)
 
-gm.pre_script_hook(gm.constants.damager_attack_process, function(self, other, result, args)
-    if callbacks[self.id] and callbacks[self.id]["pre_damager_attack_process"] then
-        local flag = true
-        for _, func in pairs(callbacks[self.id]["pre_damager_attack_process"]) do
-            if func(self, args[1].value, args[2].value) == false then
-                flag = false
-            end
-        end
-        if flag == false then
-            return flag
+gm.post_script_hook(gm.constants.write_attackinfo, function(self, other, result, args)
+    local attack_info = args[1].value
+    for i = 1, #attack_info_table_order do
+        local type = attack_info_table_order[i]
+        local attack_info_callbacks_ = attack_info["attack_info_callbacks_" .. type]
+        if attack_info_callbacks_ then
+            self:writesign(true)
+            local table = Utils.create_table_from_array(attack_info_callbacks_)
+            self:writestring(Utils.simple_table_to_string(table))
+        else
+            self:writesign(false)
         end
     end
-    local parent = args[1].value.parent
-    if parent and type(parent) ~= "number" then
-        if callbacks[parent.id] and callbacks[parent.id]["pre_damager_attack_process_parent"] then
-            local flag = true
-            for _, func in pairs(callbacks[parent.id]["pre_damager_attack_process_parent"]) do
-                if func(args[1].value, args[2].value) == false then
+end)
+
+gm.post_script_hook(gm.constants.read_attackinfo, function(self, other, result, args)
+    for i = 1, #attack_info_table_order do
+        local type = attack_info_table_order[i]
+        local sign = self:readsign()
+        if sign ~= 0 then
+            local table = Utils.simple_string_to_table(self:readstring())
+            result.value["attack_info_callbacks_" .. type] = Utils.create_array_from_table(table)
+        end
+    end
+end)
+
+gm.pre_script_hook(gm.constants.damager_attack_process, function(self, other, result, args)
+    local attack_info_callbacks_attack = args[1].value.attack_info_callbacks_attack
+    if attack_info_callbacks_attack then
+        log.info(args[1].value.attack_info_callbacks_hit, "attack")
+        local callbacks_warpped = Array.wrap(attack_info_callbacks_attack)
+        local flag = true
+        for i = 0, callbacks_warpped:size() - 1 do
+            local attack_info_callbacks_ = attack_info_callbacks[callbacks_warpped:get(i)]
+            if attack_info_callbacks_ and attack_info_callbacks_["attack"] then
+                if attack_info_callbacks_["attack"](args[1].value, args[2].value) == false then
                     flag = false
                 end
             end
-            return flag
         end
+        return flag
     end
 end)
 --[[
@@ -313,19 +438,53 @@ end)
 { name = 'is_attack_authority' }
 ]]
 gm.pre_script_hook(gm.constants.damager_hit_process, function(self, other, result, args)
-    if self then
-        if callbacks[self.id] and callbacks[self.id]["pre_damager_hit_process"] then
-            local flag = true
-            for _, func in pairs(callbacks[self.id]["pre_damager_hit_process"]) do
-                if func(self, args[1].value, args[2].value) == false then
+    local attack_info_callbacks_hit = args[1].value.attack_info_callbacks_hit
+    if attack_info_callbacks_hit then
+        local callbacks_warpped = Array.wrap(attack_info_callbacks_hit)
+        local flag = true
+        for i = 0, callbacks_warpped:size() - 1 do
+            local attack_info_callbacks_ = attack_info_callbacks[callbacks_warpped:get(i)]
+            if attack_info_callbacks_ and attack_info_callbacks_["hit"] then
+                if attack_info_callbacks_["hit"](args[1].value, args[2].value) == false then
                     flag = false
                 end
             end
-            args[6].value = args[1].value.damage
-            args[7].value = args[1].value.critical
-            if flag == false then
-                return flag
+        end
+        args[6].value = args[1].value.damage
+        args[7].value = args[1].value.critical
+        return flag
+    end
+end)
+
+memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"[rbp+9D0h-A10h]", "rsp+0AD0h-A60h"}, {"RValue**", "RValue*"}, 0,
+    gm.get_script_function_address(gm.constants.damager_attack_process):add(27333), function(args)
+        local victim = args[2].value
+        if callbacks[victim.id] and callbacks[victim.id]["post_be_kill_proc"] then
+            callbacks[victim.id]["post_be_kill_proc"] = nil
+        end
+        local attack_info = memory.resolve_pointer_to_type(args[1]:deref():get_address(), "RValue*").value
+        local attack_info_callbacks_kill = attack_info.attack_info_callbacks_kill
+        if attack_info_callbacks_kill then
+            if callbacks[victim.id] == nil then
+                callbacks[victim.id] = {}
             end
+            if callbacks[victim.id]["post_be_kill_proc"] == nil then
+                callbacks[victim.id]["post_be_kill_proc"] = {}
+            end
+            local callbacks_warpped = Array.wrap(attack_info_callbacks_kill)
+            for i = 0, callbacks_warpped:size() - 1 do
+                local attack_info_callbacks_ = attack_info_callbacks[callbacks_warpped:get(i)]
+                if attack_info_callbacks_ and attack_info_callbacks_["kill"] then
+                    table.insert(callbacks[victim.id]["post_be_kill_proc"], attack_info_callbacks_["kill"])
+                end
+            end
+        end
+    end)
+Callback_ext.add_post_callback(40, "on_all_KillProc_callback", function(self, other, result, args)
+    local victim = args[2].value
+    if callbacks[victim.id] and callbacks[victim.id]["post_be_kill_proc"] then
+        for _, func in pairs(callbacks[victim.id]["post_be_kill_proc"]) do
+            func(victim, args[3].value)
         end
     end
 end)
@@ -405,28 +564,6 @@ gm.pre_code_execute("gml_Object_oP_Other_15", function(self, other)
             end
         end
         return flag
-    end
-end)
-
-memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"rsp+0AD0h-A60h", "[rbp+9E8h]"}, {"RValue*", "CInstance*"}, 0,
-    gm.get_script_function_address(gm.constants.damager_attack_process):add(27333), function(args)
-        local bullet_callbacks = callbacks[args[2].id]
-        if bullet_callbacks == nil or bullet_callbacks["post_bullet_kill_proc"] == nil then
-            if callbacks[args[1].value.id] and callbacks[args[1].value.id]["post_be_kill_proc"] then
-                callbacks[args[1].value.id]["post_be_kill_proc"] = nil
-            end
-            return
-        end
-        if callbacks[args[1].value.id] == nil then
-            callbacks[args[1].value.id] = {}
-        end
-        callbacks[args[1].value.id]["post_be_kill_proc"] = bullet_callbacks["post_bullet_kill_proc"]
-    end)
-Callback_ext.add_post_callback(40, "on_all_KillProc_callback", function(self, other, result, args)
-    if callbacks[args[2].value.id] and callbacks[args[2].value.id]["post_be_kill_proc"] then
-        for _, func in pairs(callbacks[args[2].value.id]["post_be_kill_proc"]) do
-            func(args[2].value, args[3].value)
-        end
     end
 end)
 
