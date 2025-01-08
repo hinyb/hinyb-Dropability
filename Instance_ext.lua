@@ -1,3 +1,4 @@
+-- now it becomes terriable again, may need to refactor sometimes.
 Instance_ext = {}
 local callbacks = {}
 local callbacks_check_table = {
@@ -337,7 +338,7 @@ memory.dynamic_hook("pre_destroy_deep", "int64_t", {"CInstance*", "CInstance*", 
         local execute_event_flag = a4:get()
         if execute_event_flag == 1 then
             local id = a3:get()
-            if id == 4294967295 then -- here should be -1, but for some reasons it is 4294967295.
+            if id == 4294967295 then -- It should be -1 here, but ReturnOfModdingBase handles all integers as int64_t.
                 id = a1.id
             end
             if callbacks[id] and callbacks[id]["pre_destroy"] then
@@ -385,24 +386,31 @@ end)
 
 gm.post_script_hook(gm.constants.write_attackinfo, function(self, other, result, args)
     local attack_info = args[1].value
+    local bit_array = 0
     for i = 1, #attack_info_table_order do
         local type = attack_info_table_order[i]
         local attack_info_callbacks_ = attack_info["attack_info_callbacks_" .. type]
         if attack_info_callbacks_ then
-            self:writesign(true)
+            bit_array = bit_array | (1 << (i - 1))
+        end
+    end
+    self:writebyte(bit_array)
+    for i = 1, #attack_info_table_order do
+        local type = attack_info_table_order[i]
+        local attack_info_callbacks_ = attack_info["attack_info_callbacks_" .. type]
+        if attack_info_callbacks_ then
             local table = Utils.create_table_from_array(attack_info_callbacks_)
             self:writestring(Utils.simple_table_to_string(table))
-        else
-            self:writesign(false)
         end
     end
 end)
 
 gm.post_script_hook(gm.constants.read_attackinfo, function(self, other, result, args)
+    local bit_array = self:readbyte()
     for i = 1, #attack_info_table_order do
-        local type = attack_info_table_order[i]
-        local sign = self:readsign()
-        if sign ~= 0 then
+        local sign = (bit_array >> (i - 1)) & 1
+        if sign == 1 then
+            local type = attack_info_table_order[i]
             local table = Utils.simple_string_to_table(self:readstring())
             result.value["attack_info_callbacks_" .. type] = Utils.create_array_from_table(table)
         end
@@ -413,10 +421,10 @@ gm.pre_script_hook(gm.constants.damager_attack_process, function(self, other, re
     local attack_info_callbacks_attack = args[1].value.attack_info_callbacks_attack
     if attack_info_callbacks_attack then
         log.info(args[1].value.attack_info_callbacks_hit, "attack")
-        local callbacks_warpped = Array.wrap(attack_info_callbacks_attack)
+        local callbacks_wrapped = Array.wrap(attack_info_callbacks_attack)
         local flag = true
-        for i = 0, callbacks_warpped:size() - 1 do
-            local attack_info_callbacks_ = attack_info_callbacks[callbacks_warpped:get(i)]
+        for i = 0, callbacks_wrapped:size() - 1 do
+            local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
             if attack_info_callbacks_ and attack_info_callbacks_["attack"] then
                 if attack_info_callbacks_["attack"](args[1].value, args[2].value) == false then
                     flag = false
@@ -440,10 +448,10 @@ end)
 gm.pre_script_hook(gm.constants.damager_hit_process, function(self, other, result, args)
     local attack_info_callbacks_hit = args[1].value.attack_info_callbacks_hit
     if attack_info_callbacks_hit then
-        local callbacks_warpped = Array.wrap(attack_info_callbacks_hit)
+        local callbacks_wrapped = Array.wrap(attack_info_callbacks_hit)
         local flag = true
-        for i = 0, callbacks_warpped:size() - 1 do
-            local attack_info_callbacks_ = attack_info_callbacks[callbacks_warpped:get(i)]
+        for i = 0, callbacks_wrapped:size() - 1 do
+            local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
             if attack_info_callbacks_ and attack_info_callbacks_["hit"] then
                 if attack_info_callbacks_["hit"](args[1].value, args[2].value) == false then
                     flag = false
@@ -471,9 +479,9 @@ memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"[rbp+9D0h-A10h]", "rsp+0
             if callbacks[victim.id]["post_be_kill_proc"] == nil then
                 callbacks[victim.id]["post_be_kill_proc"] = {}
             end
-            local callbacks_warpped = Array.wrap(attack_info_callbacks_kill)
-            for i = 0, callbacks_warpped:size() - 1 do
-                local attack_info_callbacks_ = attack_info_callbacks[callbacks_warpped:get(i)]
+            local callbacks_wrapped = Array.wrap(attack_info_callbacks_kill)
+            for i = 0, callbacks_wrapped:size() - 1 do
+                local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
                 if attack_info_callbacks_ and attack_info_callbacks_["kill"] then
                     table.insert(callbacks[victim.id]["post_be_kill_proc"], attack_info_callbacks_["kill"])
                 end
