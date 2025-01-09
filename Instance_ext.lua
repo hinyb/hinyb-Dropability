@@ -1,11 +1,13 @@
 -- now it becomes terriable again, may need to refactor sometimes.
+-- maybe I should use a global table to store all params.
+-- need more time to solve it.
+-- bullets are only local.
 Instance_ext = {}
 local callbacks = {}
 local callbacks_check_table = {
     pre_destroy = true,
     post_local_drop = true,
     post_local_pickup = true,
-    pre_damager_attack_process = true,
     pre_actor_death_after_hippo = true,
     pre_actor_set_dead = true,
     pre_skill_activate = true,
@@ -14,9 +16,8 @@ local callbacks_check_table = {
     post_other_fire_explosion = true,
     post_other_fire_direct = true,
     post_other_fire_bullet = true,
-    post_bullet_kill_proc = true,
-    pre_damager_hit_process = true,
-    pre_player_level_up = true
+    pre_player_level_up = true,
+    pre_attack_collision_resolve = true
 }
 function Instance_ext.add_on_anim_end(self, name, fn)
     name = name .. "on_anim_end"
@@ -208,6 +209,7 @@ local function attack_info_add_callback(attack_info, type, name)
     end
     gm.array_push(attack_info["attack_info_callbacks_" .. type], name)
 end
+-- Maybe the filtering logic should be separated.
 function Instance_ext.add_skill_bullet_captrue_local(actor, slot_index, name, deal_func, pre_func, post_func)
     Instance_ext.add_skill_instance_captrue(actor, slot_index, name, function(inst)
         if bullet_list[inst.object_index] then
@@ -229,6 +231,29 @@ function Instance_ext.add_skill_bullet_captrue_local(actor, slot_index, name, de
                 deal_func(bullet)
             end)
             return
+        end
+    end, pre_func, post_func)
+end
+
+function Instance_ext.add_skill_instance_captrue_local_with_filter(actor, slot_index, name, deal_func, pre_func,
+    post_func)
+    Instance_ext.add_skill_instance_captrue(actor, slot_index, name, function(inst)
+        if bullet_list[inst.object_index] then
+            deal_func(inst)
+            return
+        end
+        if black_list[inst.object_index] then
+            return
+        end
+        if string.sub(inst.object_name, 1, 3) == "oEf" then
+            return
+        end
+        if not inst.parent then
+            return
+        end
+        local inst_parent = Utils.get_inst_safe(inst.parent)
+        if inst_parent.object_index == gm.constants.oP then
+            deal_func(inst)
         end
     end, pre_func, post_func)
 end
@@ -331,7 +356,25 @@ SkillPickup.add_post_local_pickup_func(function(inst, skill)
         end
     end
 end)
-
+local resolve_pre_callbacks = function(result, callbacks, ...)
+    local flag = false
+    for _, callback in pairs(callbacks) do
+        local flag_, result_ = callback(...)
+        flag = flag or flag_ == false
+        if result_ then
+            result.value = result_
+        end
+    end
+    return not flag
+end
+local resolve_post_callbacks = function(result, callbacks, ...)
+    for _, callback in pairs(callbacks) do
+        local result_ = callback(...)
+        if result_ then
+            result.value = result_
+        end
+    end
+end
 -- Some Instance don't use instance_destroy, like bullet.
 memory.dynamic_hook("pre_destroy_deep", "int64_t", {"CInstance*", "CInstance*", "int", "char", "char"},
     Dynamic.instance_destroy_deep_ptr, function(ret_val, a1, a2, a3, a4, a5)
@@ -365,22 +408,15 @@ memory.dynamic_hook("pre_destroy_deep", "int64_t", {"CInstance*", "CInstance*", 
 gm.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
     if gm.array_get(self.inventory_item_stack, 76) == 0 then -- temporary solution.
         if callbacks[self.id] and callbacks[self.id]["pre_actor_death_after_hippo"] then
-            for _, func in pairs(callbacks[self.id]["pre_actor_death_after_hippo"]) do
-                func(self)
-            end
+            return resolve_pre_callbacks(result, callbacks[self.id]["pre_actor_death_after_hippo"], self)
         end
     end
 end)
 gm.pre_script_hook(gm.constants.actor_set_dead, function(self, other, result, args)
     local id = type(args[1].value) == "number" and args[1].value or args[1].value.id
     if callbacks[id] and callbacks[id]["pre_actor_set_dead"] then
-        local flag = true
-        for _, func in pairs(callbacks[id]["pre_actor_set_dead"]) do
-            if func(gm.CInstance.instance_id_to_CInstance[id]) == false then
-                flag = false
-            end
-        end
-        return flag
+        return resolve_pre_callbacks(result, callbacks[id]["pre_actor_set_dead"],
+            gm.CInstance.instance_id_to_CInstance[id])
     end
 end)
 
@@ -420,14 +456,17 @@ end)
 gm.pre_script_hook(gm.constants.damager_attack_process, function(self, other, result, args)
     local attack_info_callbacks_attack = args[1].value.attack_info_callbacks_attack
     if attack_info_callbacks_attack then
-        log.info(args[1].value.attack_info_callbacks_hit, "attack")
         local callbacks_wrapped = Array.wrap(attack_info_callbacks_attack)
         local flag = true
         for i = 0, callbacks_wrapped:size() - 1 do
             local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
             if attack_info_callbacks_ and attack_info_callbacks_["attack"] then
-                if attack_info_callbacks_["attack"](args[1].value, args[2].value) == false then
+                local flag_, result_ = attack_info_callbacks_["attack"](args[1].value, args[2].value)
+                if flag_ == false then
                     flag = false
+                end
+                if result_ then
+                    result.value = result_
                 end
             end
         end
@@ -453,8 +492,12 @@ gm.pre_script_hook(gm.constants.damager_hit_process, function(self, other, resul
         for i = 0, callbacks_wrapped:size() - 1 do
             local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
             if attack_info_callbacks_ and attack_info_callbacks_["hit"] then
-                if attack_info_callbacks_["hit"](args[1].value, args[2].value) == false then
+                local flag_, result_ = attack_info_callbacks_["hit"](args[1].value, args[2].value)
+                if flag_ == false then
                     flag = false
+                end
+                if result_ then
+                    result.value = result_
                 end
             end
         end
@@ -499,31 +542,21 @@ end)
 
 gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, args)
     if callbacks[self.id] and callbacks[self.id]["pre_skill_activate"] then
-        local flag = true
-        for _, func in pairs(callbacks[self.id]["pre_skill_activate"]) do
-            if func(self, args[1].value) == false then
-                flag = false
-            end
-        end
-        return flag
+        return resolve_pre_callbacks(result, callbacks[self.id]["pre_skill_activate"], self, args[1].value)
     end
 end)
 
 gm.post_script_hook(gm.constants.skill_activate, function(self, other, result, args)
     if callbacks[self.id] and callbacks[self.id]["post_skill_activate"] then
-        for _, func in pairs(callbacks[self.id]["post_skill_activate"]) do
-            -- actor, slot_index
-            func(self, args[1].value)
-        end
+        resolve_post_callbacks(result, callbacks[self.id]["post_skill_activate"], self, args[1].value)
     end
 end)
 
 gm.post_script_hook(gm.constants.fire_bullet, function(self, other, result, args)
     if other then
         if callbacks[other.id] and callbacks[other.id]["post_other_fire_bullet"] then
-            for _, func in pairs(callbacks[other.id]["post_other_fire_bullet"]) do
-                func(self, other, gm.variable_global_get("attack_bullet"))
-            end
+            resolve_post_callbacks(result, callbacks[other.id]["post_other_fire_bullet"], self, other,
+                gm.variable_global_get("attack_bullet"))
         end
     end
 end)
@@ -531,9 +564,8 @@ end)
 gm.post_script_hook(gm.constants.fire_direct, function(self, other, result, args)
     if other then
         if callbacks[other.id] and callbacks[other.id]["post_other_fire_direct"] then
-            for _, func in pairs(callbacks[other.id]["post_other_fire_direct"]) do
-                func(self, other, gm.variable_global_get("attack_bullet"))
-            end
+            resolve_post_callbacks(result, callbacks[other.id]["post_other_fire_direct"], self, other,
+                gm.variable_global_get("attack_bullet"))
         end
     end
 end)
@@ -541,9 +573,8 @@ end)
 gm.post_script_hook(gm.constants.fire_explosion, function(self, other, result, args)
     if other then
         if callbacks[other.id] and callbacks[other.id]["post_other_fire_explosion"] then
-            for _, func in pairs(callbacks[other.id]["post_other_fire_explosion"]) do
-                func(self, other, gm.variable_global_get("attack_bullet"))
-            end
+            resolve_post_callbacks(result, callbacks[other.id]["post_other_fire_explosion"], self, other,
+                gm.variable_global_get("attack_bullet"))
         end
     end
 end)
@@ -551,15 +582,9 @@ end)
 gm.pre_script_hook(gm.constants.actor_activity_set, function(self, other, result, args)
     local player = args[1].value
     if callbacks[player.id] and callbacks[player.id]["pre_actor_activity_set"] then
-        local flag = true
-        for _, func in pairs(callbacks[player.id]["pre_actor_activity_set"]) do
-            -- actor, activity, activity_type, handler_lua, handler_gml, auto_end
-            if func(player, args[2].value, args[2].value, args[3].value, args[4].value, args[5].value, args[6].value) ==
-                false then
-                flag = false
-            end
-        end
-        return flag
+        -- actor, activity, activity_type, handler_lua, handler_gml, auto_end
+        return resolve_pre_callbacks(result, callbacks[player.id]["pre_actor_activity_set"], player, args[2].value,
+            args[2].value, args[3].value, args[4].value, args[5].value, args[6].value)
     end
 end)
 gm.pre_code_execute("gml_Object_oP_Other_15", function(self, other)
@@ -572,6 +597,16 @@ gm.pre_code_execute("gml_Object_oP_Other_15", function(self, other)
             end
         end
         return flag
+    end
+end)
+
+gm.pre_script_hook(gm.constants.attack_collision_resolve, function(self, other, result, args)
+    if self then
+        local bullet = self
+        if callbacks[bullet.id] and callbacks[bullet.id]["pre_attack_collision_resolve"] then
+            return resolve_pre_callbacks(result, callbacks[bullet.id]["pre_attack_collision_resolve"], bullet,
+                args[1].value)
+        end
     end
 end)
 
