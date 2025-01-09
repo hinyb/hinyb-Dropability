@@ -165,7 +165,7 @@ end)
 
 ---- monster ----
 gm.post_script_hook(gm.constants.set_state_gml_Object_oArtiSnap_Create_0, function(self, other, result, args)
-    if self.team ~= 1.0 then
+    if self.team == 2.0 then
         self.is_character_enemy_targettable = 0.0
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
@@ -183,6 +183,8 @@ gm.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, other, re
             actor.hud_health_color = 5032411.0
         end)
         GM.actor_queue_dirty(self)
+    end
+    if self.team == 2.0 then
         self.is_character_enemy_targettable = 0.0
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
@@ -193,6 +195,8 @@ gm.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, other, res
             actor.hud_health_color = 5032411.0
         end)
         GM.actor_queue_dirty(self)
+    end
+    if self.team == 2.0 then
         self.is_character_enemy_targettable = 0.0
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end

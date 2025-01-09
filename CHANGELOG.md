@@ -1,3 +1,6 @@
+v3.1.10
+* Fix chaos_faction will prevent Turret from being targeted by enemy.
+
 v3.1.9
 * Fixed some hp bars show the wrong color.
 * Fix sync bugs in the new track API.
