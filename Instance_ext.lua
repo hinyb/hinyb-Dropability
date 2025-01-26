@@ -7,7 +7,7 @@ local callbacks = {}
 local callbacks_check_table = {
     pre_destroy = true,
     post_local_drop = true,
-    post_local_pickup = true,
+    post_pickup = true,
     pre_actor_death_after_hippo = true,
     pre_actor_set_dead = true,
     pre_skill_activate = true,
@@ -349,9 +349,9 @@ SkillPickup.add_post_local_drop_func(function(inst, skill)
         end
     end
 end)
-SkillPickup.add_post_local_pickup_func(function(inst, skill)
-    if callbacks[inst.id] and callbacks[inst.id]["post_local_pickup"] then
-        for _, func in pairs(callbacks[inst.id]["post_local_pickup"]) do
+SkillPickup.add_post_pickup_func(function(inst, skill)
+    if callbacks[inst.id] and callbacks[inst.id]["post_pickup"] then
+        for _, func in pairs(callbacks[inst.id]["post_pickup"]) do
             func(inst, skill)
         end
     end

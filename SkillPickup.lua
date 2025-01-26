@@ -13,10 +13,10 @@ local post_local_drop_funcs = {}
 SkillPickup.add_post_local_drop_func = function(fn)
     post_local_drop_funcs[#post_local_drop_funcs + 1] = fn
 end
-local post_local_pickup_funcs = {}
----@param fn function (actor, slot_index)
-SkillPickup.add_post_local_pickup_func = function(fn)
-    post_local_pickup_funcs[#post_local_pickup_funcs + 1] = fn
+local post_pickup_funcs = {}
+---@param fn function (actor, skillPickup, skill)
+SkillPickup.add_post_pickup_func = function(fn)
+    post_pickup_funcs[#post_pickup_funcs + 1] = fn
 end
 local skill_check_funcs = {}
 ---@param fn function (actor, skill) this function used to check if the skill can be dropped or picked up.
@@ -43,6 +43,34 @@ SkillPickup.add_skill_check_func(function(actor, skill)
         return false
     end
 end)
+local skill_diff_table = {}
+---@param fn function (skill_diff_table, skill) this function used to check if the skill can be overridden.
+SkillPickup.add_skill_diff = function(name, fn)
+    skill_diff_table[name] = fn
+end
+local function get_active_skill_diff(skill)
+    local result = {}
+    result.skill_id = skill.skill_id
+    result.slot_index = skill.slot_index
+    result.stock = skill.stock
+    --[[
+    local default_skill = Class.SKILL:get(skill.skill_id)
+    local diff_check_table = Utils.get_skill_diff_check_table()
+    if skill.disable_stock_regen ~= not default_skill:get(10) then
+        result["disable_stock_regen"] = skill.disable_stock_regen
+    end
+    for k, v in pairs(diff_check_table) do
+        if skill[k] ~= default_skill:get(v) then
+            result[k] = skill[k]
+        end
+    end]]
+    for skill_diff_name, skill_diff_func in pairs(skill_diff_table) do
+        if skill[skill_diff_name] ~=nil then
+            skill_diff_func(result, skill)
+        end
+    end
+    return result
+end
 SkillPickup.drop_skill = function(player, skill)
     for i = 1, #skill_check_funcs do
         if skill_check_funcs[i](player, skill) == false then
@@ -52,8 +80,8 @@ SkillPickup.drop_skill = function(player, skill)
     for i = 1, #pre_local_drop_funcs do
         pre_local_drop_funcs[i](player, skill)
     end
-    local skill_params = Utils.get_active_skill_diff(skill)
-    SkillModifierManager.clear_and_set_skill_sync(player, skill.slot_index, 0)
+    local skill_params = get_active_skill_diff(skill)
+    gm.actor_skill_set(skill.parent, skill.slot_index, 0)
     local x, y = Utils.get_actual_position(player)
     SkillPickup.skill_create(x, y, skill_params)
     for i = 1, #post_local_drop_funcs do
@@ -65,7 +93,7 @@ SkillPickup.add_pre_create_func = function(fn)
     pre_create_funcs[#pre_create_funcs + 1] = fn
 end
 local post_create_funcs = {}
----@param fn function (skillPickup)
+---@param fn function (skillPickup, skill_params, x, y)
 SkillPickup.add_post_create_func = function(fn)
     post_create_funcs[#post_create_funcs + 1] = fn
 end
@@ -78,18 +106,6 @@ local function init_skillPickup(target, skill_params, x, y)
     for k, v in pairs(skill_params) do
         if type(v) == "table" then
             target[k] = Utils.create_array_from_table(v)
-            if k == "ctm_arr_modifiers" then
-                for modifier_index, modifier_table in pairs(v) do
-                    local modifier = SkillModifierManager.get_modifier(modifier_table[1])
-                    if modifier.add_inst_func then
-                        local params = {}
-                        for i = 2, #modifier_table do
-                            params[#params + 1] = modifier_table[i]
-                        end
-                        modifier.add_inst_func(target, skill_params, x, y, modifier_index, table.unpack(params))
-                    end
-                end
-            end
         else
             target[k] = v
             if k == "subimage" then
@@ -100,32 +116,8 @@ local function init_skillPickup(target, skill_params, x, y)
         end
     end
     for i = 1, #post_create_funcs do
-        post_create_funcs[i](target)
+        post_create_funcs[i](target, skill_params, x, y)
     end
-end
-local activate_skill
-local set_skill = function(player, interactable)
-    gm.actor_skill_set(player, interactable.slot_index, interactable.skill_id)
-    local skill = gm.array_get(player.skills, interactable.slot_index).active_skill
-    if interactable.stock then
-        skill.stock = interactable.stock
-        gm._mod_ActorSkill_recalculateStats(skill)
-    end
-    if interactable.ctm_sprite ~= nil then
-        skill.ctm_sprite = interactable.ctm_sprite
-    end
-    if interactable.ctm_arr_modifiers ~= nil then
-        local modifiers = Array.wrap(interactable.ctm_arr_modifiers)
-        for i = 0, modifiers:size() - 1 do
-            local modifier = modifiers:get(i)
-            local modifier_args = {}
-            for j = 1, modifier:size() - 1 do
-                table.insert(modifier_args, modifier:get(j))
-            end
-            SkillModifierManager.add_modifier_local(skill, modifier:get(0), table.unpack(modifier_args))
-        end
-    end
-    gm.instance_destroy(interactable.id)
 end
 local function init()
     local skillPickup = Object.new("hinyb", "skillPickup", Object.PARENT.interactable)
@@ -136,42 +128,28 @@ local function init()
         local inst = args[1].value
         if inst.__object_index == skillPickup.value then
             local actor = args[2].value
-            if actor.is_local then
-                if inst.skill_id ~= nil and inst.slot_index ~= nil then
-                    local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-                    if not can_skill_override(actor, skill) then
-                        if SkillPickup.drop_skill(actor, skill) == false then
-                            return false
-                        end
-                    end
-                    activate_skill(actor, inst)
-                    for i = 1, #post_local_pickup_funcs do
-                        post_local_pickup_funcs[i](actor, inst.slot_index)
+            if inst.skill_id ~= nil and inst.slot_index ~= nil then
+                local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
+                if not can_skill_override(actor, skill) then
+                    if SkillPickup.drop_skill(actor, skill) == false then
+                        return false
                     end
                 end
+                gm.actor_skill_set(actor, inst.slot_index, inst.skill_id)
+                skill = gm.array_get(actor.skills, inst.slot_index).active_skill
+                if inst.stock then
+                    skill.stock = inst.stock
+                    gm._mod_ActorSkill_recalculateStats(skill)
+                end
+                for i = 1, #post_pickup_funcs do
+                    post_pickup_funcs[i](actor, inst, skill)
+                end
+                gm.instance_destroy(inst.id)
             end
             inst.activator = actor
             return false
         end
     end)
-    local active_skill_packet = Packet.new()
-    active_skill_packet:onReceived(function(message, player)
-        local Player = message:read_instance().value
-        local Interactable = message:read_instance().value
-        if Net.is_host() then
-            local sync_message = active_skill_packet:message_begin()
-            sync_message:write_instance(Player)
-            sync_message:write_instance(Interactable)
-            sync_message:send_exclude(player)
-        end
-        set_skill(Player, Interactable)
-    end)
-    local function activate_skill_send(Player, Interactable)
-        local sync_message = active_skill_packet:message_begin()
-        sync_message:write_instance(Player)
-        sync_message:write_instance(Interactable)
-        return sync_message
-    end
     local drop_skill_send
     local function drop_skill(x, y, skill_params)
         local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
@@ -232,20 +210,12 @@ local function init()
                 local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
                 init_skillPickup(skill, skill_params, x - 20, y - 20)
             end
-            activate_skill = function(Player, Interactable)
-                set_skill(Player, Interactable)
-            end
         elseif Net.is_host() then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params)
                 end
                 drop_skill(x, y, skill_params)
-            end
-            activate_skill = function(Player, Interactable)
-                local sync_message = activate_skill_send(Player, Interactable)
-                sync_message:send_to_all()
-                set_skill(Player, Interactable)
             end
         else
             SkillPickup.skill_create = function(x, y, skill_params)
@@ -254,11 +224,6 @@ local function init()
                 end
                 local sync_message = drop_skill_send(skill_params)
                 sync_message:send_to_host()
-            end
-            activate_skill = function(Player, Interactable)
-                local sync_message = activate_skill_send(Player, Interactable)
-                sync_message:send_to_host()
-                set_skill(Player, Interactable)
             end
         end
     end)

@@ -16,9 +16,6 @@ require("Utils")
 require("SkillPickup")
 require("drop_item")
 require("CompatibilityPatch")
-require("SkillModifier")
-require("SkillModifierData")
-require("SkillModifierManager")
 require("Dynamic")
 require("Callback_ext")
 require("Callable_call")
@@ -33,7 +30,6 @@ public_things = {
     end,
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,
-    ["SkillModifierManager"] = SkillModifierManager,
     ["Dynamic"] = Dynamic,
     ["Instance_ext"] = Instance_ext,
     ["Callback_ext"] = Callback_ext,
