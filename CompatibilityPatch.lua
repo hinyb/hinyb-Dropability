@@ -101,6 +101,9 @@ local function initialize_number(target, member, value)
     end
 end
 local function initialize_array(target, member, num)
+    if target[member] == nil then
+        target[member] = target.sprite_index
+    end
     if target[member .. "_half"] == nil or gm.array_length(target[member .. "_half"]) == 0 then
         target[member .. "_half"] = gm.array_create(num, 0.0)
         gm.array_set(target[member .. "_half"], 0, target[member])
@@ -134,6 +137,10 @@ CompatibilityPatch.set_compat = function(self)
     initialize_number(self, "pause")
     initialize_number(self, "menu_typing")
     initialize_number(self, "class")
+    initialize_number(self, "sprite_palette")
+    initialize_number(self, "skin_current")
+    ---- for drone ----
+    
 end
 CompatibilityPatch.has_scrap_bar = function(actor)
     if actor.class == 14 or drifter_scarp_bar_list[actor.id] then

@@ -65,7 +65,7 @@ local function get_active_skill_diff(skill)
         end
     end]]
     for skill_diff_name, skill_diff_func in pairs(skill_diff_table) do
-        if skill[skill_diff_name] ~=nil then
+        if skill[skill_diff_name] ~= nil then
             skill_diff_func(result, skill)
         end
     end
@@ -120,36 +120,62 @@ local function init_skillPickup(target, skill_params, x, y)
     end
 end
 local function init()
+    local function setup_skill(inst, actor)
+        if inst.skill_id ~= nil and inst.slot_index ~= nil then
+            local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
+            if actor.is_local == 1 and not can_skill_override(actor, skill) then
+                if SkillPickup.drop_skill(actor, skill) == false then
+                    return false
+                end
+            end
+            gm.actor_skill_set(actor, inst.slot_index, inst.skill_id)
+            skill = gm.array_get(actor.skills, inst.slot_index).active_skill
+            if inst.stock then
+                skill.stock = inst.stock
+                gm._mod_ActorSkill_recalculateStats(skill)
+            end
+            for i = 1, #post_pickup_funcs do
+                post_pickup_funcs[i](actor, inst, skill)
+            end
+            gm.instance_destroy(inst.id)
+        else
+            log.error("skill_pickup hasn't been initialized correctly", 2)
+        end
+        inst.activator = actor
+    end
     local skillPickup = Object.new("hinyb", "skillPickup", Object.PARENT.interactable)
     SkillPickup.skillPickup_object_index = skillPickup.value
     skillPickup.obj_sprite = 114
     skillPickup.obj_depth = 5.0
+    local pickup_skill_message_create
     gm.pre_script_hook(gm.constants.interactable_set_active, function(self, other, result, args)
         local inst = args[1].value
         if inst.__object_index == skillPickup.value then
             local actor = args[2].value
-            if inst.skill_id ~= nil and inst.slot_index ~= nil then
-                local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-                if not can_skill_override(actor, skill) then
-                    if SkillPickup.drop_skill(actor, skill) == false then
-                        return false
-                    end
-                end
-                gm.actor_skill_set(actor, inst.slot_index, inst.skill_id)
-                skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-                if inst.stock then
-                    skill.stock = inst.stock
-                    gm._mod_ActorSkill_recalculateStats(skill)
-                end
-                for i = 1, #post_pickup_funcs do
-                    post_pickup_funcs[i](actor, inst, skill)
-                end
-                gm.instance_destroy(inst.id)
+            if Net.is_host() then
+                pickup_skill_message_create(inst, actor):send_to_all()
+            elseif Net.is_client() then
+                pickup_skill_message_create(inst, actor):send_to_host()
             end
-            inst.activator = actor
+            setup_skill(inst, actor)
             return false
         end
     end)
+    local pickup_skill_packet = Packet.new()
+    pickup_skill_packet:onReceived(function(message, player)
+        local interactable = message:read_instance().value
+        local activator = message:read_instance().value
+        if Net.is_host() then
+            pickup_skill_message_create(interactable, activator):send_exclude(player)
+        end
+        setup_skill(interactable, activator)
+    end)
+    pickup_skill_message_create = function(interactable, activator)
+        local sync_message = pickup_skill_packet:message_begin()
+        sync_message:write_instance(interactable)
+        sync_message:write_instance(activator)
+        return sync_message
+    end
     local drop_skill_send
     local function drop_skill(x, y, skill_params)
         local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)

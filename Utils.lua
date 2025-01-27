@@ -30,6 +30,13 @@ Utils = {}
 Utils.to_string_with_floor = function (number)
     return tostring(math.floor(number))
 end
+Utils.simple_shuffle_table = function (t)
+    local n = #t
+    for i = n, 2, -1 do
+        local j = math.random(i)
+        t[i], t[j] = t[j], t[i]
+    end
+end
 Utils.get_actual_position = function(actor)
     if actor.following_player and actor.following_player ~= -4 then
         return actor.following_player.x, actor.following_player.y
@@ -161,6 +168,16 @@ Utils.get_slot_index_with_name = function(name)
         return 3
     end
     return nil
+end
+local slot_map = {"z", "x", "c", "v"}
+Utils.get_name_with_slot_index = function(slot_index)
+    return slot_map[slot_index + 1]
+end
+Utils.clamp = function (value, min_value, max_value)
+    return math.max(min_value, math.min(value, max_value))
+end
+Utils.lerp = function (a, b, t)
+    return a + (b - a) * t
 end
 Utils.get_slot_index_with_skill_id = function(skill_id)
     local slot_index = skill_id_to_slot[skill_id] or Utils.get_slot_index_with_name(Class.SKILL:get(skill_id):get(1))
@@ -466,8 +483,7 @@ Utils.create_packet = function(onReceived, type_table)
                 elseif type_table[i] == Utils.param_type.va_list then
                     sync_message:write_byte(#value)
                     for j = 1, #value do
-                        -- write_double
-                        sync_message:write_float(value[j])
+                        sync_message:write_double(value[j])
                     end
                 else
                     sync_message:write_string(value)
@@ -595,7 +611,7 @@ Utils.unhook_instance_create = function()
     instance_create_flag = false
 end
 gm.post_script_hook(gm.constants.instance_create_depth, function(self, other, result, args)
-    if instance_create_flag and not Helper.table_has(instance_filter, result.value.object_index) then
+    if instance_create_flag and not Helper.table_has(instance_filter, result.value:get_object_index_self()) then
         table.insert(instance_list, result.value)
     end
 end)

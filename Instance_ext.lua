@@ -31,10 +31,7 @@ function Instance_ext.add_on_anim_end(self, name, fn)
             if flag ~= 1.0 then
                 local image_index = actor.image_index
                 local image_number = actor.image_number
-                if math.abs(image_index - image_number + 1) <= 0.0001 then
-                    fn(inst)
-                    actor:remove_callback(name)
-                elseif image_index >= image_number - 1 then
+                if math.abs(image_index - image_number + 1) <= 0.0001 or image_index >= image_number - 1 then
                     fn(inst)
                     actor:remove_callback(name)
                 end
