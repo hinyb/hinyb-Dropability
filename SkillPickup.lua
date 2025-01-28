@@ -1,5 +1,6 @@
 SkillPickup = {}
 -- May need to refactor
+-- Now the sync part still has some issue.
 SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
@@ -7,6 +8,11 @@ local pre_local_drop_funcs = {}
 ---@param fn function (actor, skill)
 SkillPickup.add_pre_local_drop_func = function(fn)
     pre_local_drop_funcs[#pre_local_drop_funcs + 1] = fn
+end
+local pre_local_drop_after_diff_funcs = {}
+---@param fn function (actor, skill)
+SkillPickup.add_pre_local_drop_after_diff_func = function(fn)
+    pre_local_drop_after_diff_funcs[#pre_local_drop_after_diff_funcs + 1] = fn
 end
 local post_local_drop_funcs = {}
 ---@param fn function (actor, skill_params)
@@ -81,6 +87,9 @@ SkillPickup.drop_skill = function(player, skill)
         pre_local_drop_funcs[i](player, skill)
     end
     local skill_params = get_active_skill_diff(skill)
+    for i = 1, #pre_local_drop_after_diff_funcs do
+        pre_local_drop_after_diff_funcs[i](player, skill)
+    end
     gm.actor_skill_set(skill.parent, skill.slot_index, 0)
     local x, y = Utils.get_actual_position(player)
     SkillPickup.skill_create(x, y, skill_params)
@@ -135,7 +144,6 @@ local function init()
             for i = 1, #post_pickup_funcs do
                 post_pickup_funcs[i](actor, inst, skill)
             end
-            gm.instance_destroy(inst.id)
         else
             log.error("skill_pickup hasn't been initialized correctly", 2)
         end
@@ -150,12 +158,13 @@ local function init()
         local inst = args[1].value
         if inst.__object_index == skillPickup.value then
             local actor = args[2].value
+            setup_skill(inst, actor)
             if Net.is_host() then
                 pickup_skill_message_create(inst, actor):send_to_all()
             elseif Net.is_client() then
                 pickup_skill_message_create(inst, actor):send_to_host()
             end
-            setup_skill(inst, actor)
+            gm.instance_destroy(inst.id)
             return false
         end
     end)
@@ -163,10 +172,11 @@ local function init()
     pickup_skill_packet:onReceived(function(message, player)
         local interactable = message:read_instance().value
         local activator = message:read_instance().value
+        setup_skill(interactable, activator)
         if Net.is_host() then
             pickup_skill_message_create(interactable, activator):send_exclude(player)
         end
-        setup_skill(interactable, activator)
+        gm.instance_destroy(interactable.id)
     end)
     pickup_skill_message_create = function(interactable, activator)
         local sync_message = pickup_skill_packet:message_begin()
