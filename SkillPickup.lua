@@ -123,10 +123,8 @@ local function init()
     local function setup_skill(inst, actor)
         if inst.skill_id ~= nil and inst.slot_index ~= nil then
             local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-            if actor.is_local == 1 and not can_skill_override(actor, skill) then
-                if SkillPickup.drop_skill(actor, skill) == false then
-                    return false
-                end
+            if gm.bool(actor.is_local) and not can_skill_override(actor, skill) then
+                SkillPickup.drop_skill(actor, skill)
             end
             gm.actor_skill_set(actor, inst.slot_index, inst.skill_id)
             skill = gm.array_get(actor.skills, inst.slot_index).active_skill
