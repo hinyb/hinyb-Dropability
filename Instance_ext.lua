@@ -373,6 +373,7 @@ local resolve_post_callbacks = function(result, callbacks, ...)
     end
 end
 -- Some Instance don't use instance_destroy, like bullet.
+local cache_id = -4
 memory.dynamic_hook("pre_destroy_deep", "int64_t", {"CInstance*", "CInstance*", "int", "char", "char"},
     Dynamic.instance_destroy_deep_ptr, function(ret_val, a1, a2, a3, a4, a5)
         local execute_event_flag = a4:get()
@@ -381,6 +382,7 @@ memory.dynamic_hook("pre_destroy_deep", "int64_t", {"CInstance*", "CInstance*", 
             if id == 4294967295 then -- It should be -1 here, but ReturnOfModdingBase handles all integers as int64_t.
                 id = a1.id
             end
+            cache_id = id
             if callbacks[id] and callbacks[id]["pre_destroy"] then
                 local flag = true
                 for _, func in pairs(callbacks[id]["pre_destroy"]) do
@@ -394,11 +396,7 @@ memory.dynamic_hook("pre_destroy_deep", "int64_t", {"CInstance*", "CInstance*", 
     end, function(ret_val, a1, a2, a3, a4, a5)
         local execute_event_flag = a4:get()
         if execute_event_flag == 1 then
-            local id = a3:get()
-            if id == 4294967295 then -- here should be -1, but for some reasons it is 4294967295.
-                id = a1.id
-            end
-            callbacks[id] = nil
+            callbacks[cache_id] = nil
         end
     end)
 
