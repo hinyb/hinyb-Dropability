@@ -22,6 +22,11 @@ require("Callable_call")
 require("Instance_ext")
 require("GameStyleManager")
 
+local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/Utils_Extras")
+for _, name in ipairs(names) do
+    require(name)
+end
+
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]
 public_things = {
