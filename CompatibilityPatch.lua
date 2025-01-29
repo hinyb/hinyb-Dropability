@@ -222,7 +222,7 @@ gm.pre_code_execute("gml_Object_oHuntressTrirang_Destroy_0", function(self, othe
 end)
 Initialize(function()
     local huntressX2 = Skill.find("ror", "huntressX2")
-    huntressX2:onPostStep(function(actor, struct, slot)
+    huntressX2:onStep(function(actor, struct, slot)
         local total_trirang = struct.total_trirang
         if total_trirang and total_trirang > 0 then
             struct.freeze_cooldown(struct, struct)

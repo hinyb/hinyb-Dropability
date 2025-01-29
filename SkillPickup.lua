@@ -263,4 +263,3 @@ local function init()
     end)
 end
 Initialize(init)
-return SkillPickup

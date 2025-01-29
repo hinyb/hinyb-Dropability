@@ -505,6 +505,11 @@ end)
 memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"[rbp+9D0h-A10h]", "rsp+0AD0h-A60h"}, {"RValue**", "RValue*"}, 0,
     gm.get_script_function_address(gm.constants.damager_attack_process):add(27333), function(args)
         local victim = args[2].value
+        if type(victim) == "number" then
+            log.warning("If you see this message, please report it")
+            gm.show_debug_message(gm.debug_get_callstack())
+            return false
+        end
         if callbacks[victim.id] and callbacks[victim.id]["post_be_kill_proc"] then
             callbacks[victim.id]["post_be_kill_proc"] = nil
         end

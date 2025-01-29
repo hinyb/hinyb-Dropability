@@ -64,9 +64,10 @@ function Callable_call.remove_capture_instance(callback_name, name)
 end
 
 gm.pre_script_hook(gm.constants.callable_call, function(self, other, result, args)
-    if type(args[1].value.callable_value) ~= "number" then
-        if pre_callbacks[args[1].value.callable_value.script_name] then
-            for _, fn in pairs(pre_callbacks[args[1].value.callable_value.script_name]) do
+    local script = args[1].value
+    if script and type(script.callable_value) ~= "number" then
+        if pre_callbacks[script.callable_value.script_name] then
+            for _, fn in pairs(pre_callbacks[script.callable_value.script_name]) do
                 fn(self, other, result, args)
             end
         end
@@ -74,9 +75,10 @@ gm.pre_script_hook(gm.constants.callable_call, function(self, other, result, arg
 end)
 
 gm.post_script_hook(gm.constants.callable_call, function(self, other, result, args)
-    if type(args[1].value.callable_value) ~= "number" then
-        if post_callbacks[args[1].value.callable_value.script_name] then
-            for _, fn in pairs(post_callbacks[args[1].value.callable_value.script_name]) do
+    local script = args[1].value
+    if script and type(script.callable_value) ~= "number" then
+        if post_callbacks[script.callable_value.script_name] then
+            for _, fn in pairs(post_callbacks[script.callable_value.script_name]) do
                 fn(self, other, result, args)
             end
         end

@@ -1,3 +1,4 @@
+-- maybe useless
 InstanceExtManager = {}
 local resolve_pre_script_callbacks = function(result, callbacks, ...)
     local flag = false
