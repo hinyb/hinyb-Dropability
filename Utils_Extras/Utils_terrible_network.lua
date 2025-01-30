@@ -72,8 +72,7 @@ Utils.create_packet = function(onReceived, type_table)
                 elseif type_table[i] == Utils.param_type.va_list then
                     sync_message:write_byte(#value)
                     for j = 1, #value do
-                        -- write_double
-                        sync_message:write_float(value[j])
+                        sync_message:write_double(value[j])
                     end
                 else
                     sync_message:write_string(value)

@@ -1,3 +1,9 @@
+v3.1.12
+* Add some valid check.
+
+v3.1.11
+* Move SkillModifier to SkillChest.
+
 v3.1.10
 * Fix chaos_faction will prevent Turret from being targeted by enemy.
 
