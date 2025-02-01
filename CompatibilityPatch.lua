@@ -177,13 +177,14 @@ gm.post_script_hook(gm.constants.set_state_gml_Object_oArtiSnap_Create_0, functi
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
--- I think I should use less mid-funcion hook.
--- So I choose to hook the draw event.
-gm.pre_code_execute("gml_Object_oImpFriend_Draw_0", function(self, other)
-    if self.team ~= 1.0 then
-        self.hud_health_color = 5032411.0
-    end
-end)
+memory.dynamic_hook_mid("tentacle_hp_color_fix", {"rdi", "r12"}, {"RValue*", "RValue*"}, 0,
+    gm.get_script_function_address(101568):add(1845), function(args)
+        if args[1].value ~= 1.0 then
+            Instance.wrap(args[2].value):add_callback("onPostStatRecalc", "tentacle_hp_color_fix", function (actor)
+                actor.hud_health_color = 5032411.0
+            end)
+        end
+    end)
 gm.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, other, result, args)
     if self.team ~= 1.0 then
         Instance.wrap(self):add_callback("onStatRecalc", "hud_health_color_reset", function(actor)

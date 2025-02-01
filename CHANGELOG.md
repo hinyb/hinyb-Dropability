@@ -1,3 +1,6 @@
+v3.1.13
+* Improve the fixing way of ImpFriend.
+
 v3.1.12
 * Add some valid check.
 
