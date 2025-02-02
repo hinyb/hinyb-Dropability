@@ -157,11 +157,11 @@ Utils.skill_set_range = function(inst, slot_index, skill_id)
         inst.v_range = Utils.skill_get_range(skill_id)
     end
 end
-Utils.skill_get_range = function (skill_id)
+Utils.skill_get_range = function(skill_id)
     return range_table[skill_id] or 40
 end
 -- Some skills may be missing
-local instant_damage_skills = {
+local non_instant_damage_skills = {
     [23] = true, -- banditC -- need to fix
     [39] = true, -- handX
     [43] = true, -- handX2
@@ -173,15 +173,15 @@ local instant_damage_skills = {
     [54] = true, -- engineerX2
     [55] = true, -- engineerV2
     [56] = true, -- engineerV2Boosted
-    [77] = true, -- acridC -- hard to fix, this skill don't use damager_attack_process. -- apply_buff on_activate
     [95] = true, -- loaderV
     [96] = true, -- loaderVBoosted
     [99] = true, -- loaderV2
     [100] = true, -- loaderV2Boosted
+    [77] = true, -- acridC -- hard to fix, this skill don't use damager_attack_process. -- apply_buff on_activate
     [147] = true -- monsterLemurianRiderLemC -- need to fix
 }
-Utils.is_non_instant_damage_skill = function(skill_id)
-    return not instant_damage_skills[skill_id]
+Utils.is_instant_damage_skill = function(skill_id)
+    return not non_instant_damage_skills[skill_id]
 end
 local summon_skills = {
     [39] = true, -- handX
@@ -199,7 +199,8 @@ local summon_skills = {
     [99] = true, -- loaderV2
     [100] = true, -- loaderV2Boosted
     [129] = true, -- drifterX
-    [133] = true -- drifterX2
+    [133] = true, -- drifterX2
+    [193] = true  -- monsterShamGX
 }
 Utils.is_summon_skill = function(skill_id)
     return summon_skills[skill_id]
@@ -228,7 +229,14 @@ local no_damage_skills = {
     [136] = true, -- drifterV2Boosted
     [140] = true, -- robomandoC
     [141] = true, -- robomandoV
-    [142] = true -- robomandoVBoosted
+    [142] = true, -- robomandoVBoosted
+    [157] = true, -- monsterClayC
+    [160] = true, -- monsterTrokkC
+    [176] = true, -- monsterScavengerC
+    [172] = true, -- monsterImpGC
+    [188] = true, -- monsterMacropredX
+    [195] = true, -- monsterTuberX
+    [198] = true -- monsterSwiftZ
 }
 Utils.is_damage_skill = function(skill_id)
     return not no_damage_skills[skill_id]
@@ -244,7 +252,9 @@ local handy_skill_list = {
 Utils.get_handy_drone_type = function(skill_id)
     return handy_skill_list[skill_id]
 end
-
+--[[
+buff skill 90 91 68 69 40 105 107 103 104 27 12
+]]
 local random_skill_blacklist = {
     [0] = true, -- no skill
     [16] = true, -- enforcerZ2Reload Useless skills
@@ -258,6 +268,7 @@ local random_skill_blacklist = {
     [183] = true, -- monsterBossFinalZ
     [184] = true, -- monsterBossFinalX
     [185] = true, -- can't set
+    [188] = true, -- useless skill just walk sprite
     [196] = true, -- monsterBrambleZ It need a head, and I don't think player can have a head.
     [205] = true, -- ImpfriendRecall
     [206] = true, -- can't set
@@ -389,7 +400,7 @@ Utils.find_skill_with_localized = function(name, player)
         end
     end
 end
-Initialize(function ()
+Initialize(function()
     local skill_t = {
         [6] = 0,
         [7] = 1,

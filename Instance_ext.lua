@@ -263,30 +263,32 @@ function Instance_ext.add_skill_bullet_callback(actor, slot_index, name, callbac
     if not attack_info_table[callback_id] then
         log.error("try to add a non-existed skill_bullet_callback", 2)
     end
+    local attack_info_name = Utils.to_string_with_floor(actor.id) .. name
     Instance_ext.add_skill_bullet_captrue_local(actor, slot_index, name .. callback_id, function(attack)
-        attack_info_add_callback(attack.attack_info, callback_id, name)
+        attack_info_add_callback(attack.attack_info, callback_id, attack_info_name)
     end, pre_func, post_func)
     Instance_ext.add_callback(actor, "pre_destroy", name, function(attack)
-        attack_info_callbacks[name] = nil
+        attack_info_callbacks[attack_info_name] = nil
     end)
-    if attack_info_callbacks[name] == nil then
-        attack_info_callbacks[name] = {}
+    if attack_info_callbacks[attack_info_name] == nil then
+        attack_info_callbacks[attack_info_name] = {}
     end
-    attack_info_callbacks[name][callback_id] = deal_func
+    attack_info_callbacks[attack_info_name][callback_id] = deal_func
 end
 
 function Instance_ext.remove_skill_bullet_callback(actor, slot_index, name, callback_id)
+    local attack_info_name = Utils.to_string_with_floor(actor.id) .. name
     if callback_id == nil then
-        attack_info_callbacks[name] = nil
+        attack_info_callbacks[attack_info_name] = nil
         Instance_ext.remove_skill_instance_captrue(actor, slot_index)
     else
         if not attack_info_table[callback_id] then
             log.error("try to remove a non-existed skill_bullet_callback", 2)
         end
         Instance_ext.remove_skill_instance_captrue(actor, slot_index, name .. callback_id)
-        attack_info_callbacks[name][callback_id] = nil
-        if Utils.table_get_length(attack_info_callbacks[name]) == 0 then
-            attack_info_callbacks[name] = nil
+        attack_info_callbacks[attack_info_name][callback_id] = nil
+        if Utils.table_get_length(attack_info_callbacks[attack_info_name]) == 0 then
+            attack_info_callbacks[attack_info_name] = nil
         end
     end
 end
