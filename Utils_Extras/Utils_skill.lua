@@ -183,6 +183,9 @@ local non_instant_damage_skills = {
 Utils.is_instant_damage_skill = function(skill_id)
     return not non_instant_damage_skills[skill_id]
 end
+Utils.is_can_track_skill = function (skill_id)
+    return not (skill_id == 77 or skill_id == 147)
+end
 local summon_skills = {
     [39] = true, -- handX
     [43] = true, -- handX2
