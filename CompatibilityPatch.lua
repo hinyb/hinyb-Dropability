@@ -140,7 +140,7 @@ CompatibilityPatch.set_compat = function(self)
     initialize_number(self, "sprite_palette")
     initialize_number(self, "skin_current")
     ---- for drone ----
-    
+
 end
 CompatibilityPatch.has_scrap_bar = function(actor)
     if actor.class == 14 or drifter_scarp_bar_list[actor.id] then
@@ -159,13 +159,15 @@ gm.post_script_hook(100561, function(self, other, result, args)
         local mobs = Array.wrap(args[1].value.totem_spawn_id)
         for i = 0, mobs:size() - 1 do
             local mob_warrped = Instance.wrap(mobs:get(i))
-            if not mob_warrped:callback_exists("draw_hp_bar_ally") then
-                mob_warrped:add_callback("onPostDraw", "draw_hp_bar_ally", function(actor)
-                    actor.hud_health_color = 6804360.0
-                    actor:draw_hp_bar_ally()
-                end)
-                mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
+            if args[1].value.team == 1 then
+                if not mob_warrped:callback_exists("draw_hp_bar_ally") then
+                    mob_warrped:add_callback("onPostDraw", "draw_hp_bar_ally", function(actor)
+                        actor.hud_health_color = 6804360.0
+                        actor:draw_hp_bar_ally()
+                    end)
+                end
             end
+            mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
         end
     end
 end)
@@ -180,7 +182,7 @@ end)
 memory.dynamic_hook_mid("tentacle_hp_color_fix", {"rdi", "r12"}, {"RValue*", "RValue*"}, 0,
     gm.get_script_function_address(101568):add(1845), function(args)
         if args[1].value ~= 1.0 then
-            Instance.wrap(args[2].value):add_callback("onPostStatRecalc", "tentacle_hp_color_fix", function (actor)
+            Instance.wrap(args[2].value):add_callback("onPostStatRecalc", "tentacle_hp_color_fix", function(actor)
                 actor.hud_health_color = 5032411.0
             end)
         end
