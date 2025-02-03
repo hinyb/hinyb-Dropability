@@ -2,6 +2,8 @@
 -- maybe I should use a global table to store all params.
 -- need more time to solve it.
 -- bullets are only local.
+-- need to improve the bullets sync.
+-- but I want to rewrite the whole things when the ReturnApi comes out.
 Instance_ext = {}
 local callbacks = {}
 local callbacks_check_table = {
