@@ -1,9 +1,7 @@
-v3.1.14
+v3.1.13
 * Fix the new track api can't apply twice.
 * Finish monster's skill_blacklist.
 * Fix monsterShamGX's summons drawing incorrect color bars.
-
-v3.1.13
 * Improve the fixing way of ImpFriend.
 
 v3.1.12
