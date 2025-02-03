@@ -273,8 +273,7 @@ memory.dynamic_hook_mid("handX_fix_actor_death", {"rdx", "[rbp+0x1F88]"}, {"int"
     end)
 memory.dynamic_hook_mid("handX_fix_find_skill", {"rbp+410h-340h", "[rbp+410h+10h+8h]"}, {"RValue*", "CInstance*"}, 0,
     gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(4676), function(args)
-        local actor = type(args[2].parent) == "number" and gm.CInstance.instance_id_to_CInstance[args[2].parent] or
-                          args[2].parent
+        local actor = Utils.get_inst_safe(args[2].parent)
         local skills = actor.skills
         for i = 0, gm.array_length(skills) - 1 do
             local skill = gm.array_get(skills, i).active_skill
@@ -287,8 +286,7 @@ memory.dynamic_hook_mid("handX_fix_find_skill", {"rbp+410h-340h", "[rbp+410h+10h
 local target = gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(1018)
 memory.dynamic_hook_mid("handX_fix_find_drone", {"[rbp+70h+10h]"}, {"CInstance*"}, 0,
     gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(614), function(args)
-        local actor = type(args[1].parent) == "number" and gm.CInstance.instance_id_to_CInstance[args[1].parent] or
-                          args[1].parent
+        local actor = Utils.get_inst_safe(args[1].parent)
         if actor.last_use_hand_drone_type ~= args[1].drone_type then
             return target
         end
