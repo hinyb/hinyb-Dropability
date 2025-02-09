@@ -167,7 +167,7 @@ Utils.simple_table_to_string = function(table)
             end
         end
     end
-    if #result > 1 then
+    if Utils.table_get_length(table) > 1 then
         result = string.sub(result, 1, -2)
     end
     result = result .. "}"
