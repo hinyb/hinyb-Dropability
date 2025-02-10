@@ -21,6 +21,7 @@ require("Callback_ext")
 require("Callable_call")
 require("Instance_ext")
 require("GameStyleManager")
+require("HookSystem")
 
 local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/Utils_Extras")
 for _, name in ipairs(names) do
@@ -40,7 +41,8 @@ public_things = {
     ["Callback_ext"] = Callback_ext,
     ["Callable_call"] = Callable_call,
     ["CompatibilityPatch"] = CompatibilityPatch,
-    ["GameStyleManager"] = GameStyleManager
+    ["GameStyleManager"] = GameStyleManager,
+    ["HookSystem"] = HookSystem
 
 } -- Maybe using a wrong way
 require("./envy_setup")
