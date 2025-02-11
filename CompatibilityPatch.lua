@@ -54,9 +54,6 @@ HookSystem.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, functio
 end)
 HookSystem.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = false
-    if Net.is_client() then
-        return
-    end
     InstanceExtManager.add_skill_bullet_callback(self, 0, "miner_heat_bar_fix", "hit", function()
         local skill = gm.array_get(self.skills, 0).active_skill
         if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
