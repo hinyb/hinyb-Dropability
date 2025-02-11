@@ -217,6 +217,7 @@ end
 
 -- just copied the damager_attack_process, I'm not sure if it will work.
 -- This runs on both the client and server, but when the server's damager_attack_process changes, the client will be synced.
+-- This should only call on local.
 function InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(actor, slot_index, name, deal_func)
     InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, "attack", function(attack_info, hit_list)
         for i = 0, gm.ds_list_size(hit_list) - 1, 3 do
