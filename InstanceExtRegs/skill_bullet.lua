@@ -1,5 +1,6 @@
 -- This might be unnecessary.
 -- But since I've already written it, I'll keep it.
+-- need time to improve it.
 local skill_captrue_callbacks = {}
 function InstanceExtManager.add_skill_instance_captrue(actor, slot_index, name, deal_func)
     local new_to_create_flag = false
@@ -175,7 +176,8 @@ function InstanceExtManager.add_skill_instance_captrue_local_with_filter(actor, 
     end)
 end
 
--- damager_attack_process client_send_message proc_server damager_attack_process damager_hit_process
+-- 
+-- damager_attack_process client_send_message proc_server damager_attack_process damager_hit_process -- client
 -- bullet only sync attack_info
 
 -- this function need to be called at all sides, and only trigger at host side.
@@ -214,7 +216,7 @@ function InstanceExtManager.remove_skill_bullet_callback(actor, slot_index, name
 end
 
 -- just copied the damager_attack_process, I'm not sure if it will work.
--- this is both sides.
+-- This runs on both the client and server, but when the server's damager_attack_process changes, the client will be synced.
 function InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(actor, slot_index, name, deal_func)
     InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, "attack", function(attack_info, hit_list)
         for i = 0, gm.ds_list_size(hit_list) - 1, 3 do

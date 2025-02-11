@@ -54,15 +54,12 @@ HookSystem.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, functio
 end)
 HookSystem.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = false
-    -- I think this is safe to use.
-    -- But it may have issues, if anything happens, please let me know.
-    InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(self, 0, "miner_heat_bar_fix",
-        function(attack_info, hit_target)
-            local skill = gm.array_get(self.skills, 0).active_skill
-            if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
-                gm.call("gml_Script__survivor_miner_heat_add", self, self, self, 5)
-            end
-        end)
+    InstanceExtManager.add_skill_bullet_callback(self, 0, "miner_heat_bar_fix", "hit", function()
+        local skill = gm.array_get(self.skills, 0).active_skill
+        if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
+            Utils.miner_heat_add_sync(self, 5)
+        end
+    end)
 end)
 -- So weird, it seems like 'self' must be a skill, but in gml_Script__survivor_drifter_create_scrap_bar, it pass an oP. This is really confusing.
 -- And gm.call can't pass 'self' as a YYObjectBase*, might have to use memory.dynamic_cal. So, I decided not to replace the result.
@@ -83,12 +80,13 @@ HookSystem.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, func
 end)
 HookSystem.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
     drifter_scrap_bar_flag = false
-    InstanceExtManager.add_skill_bullet_callback(self, 0, "drifter_scrap_bar_fix", "attack", function(attack_info, hit_list)
-        if not Net.is_client() then
-            local attack_info_ = Attack_Info.wrap(attack_info)
-            attack_info_:set_attack_flags(Attack_Info.ATTACK_FLAG.drifter_scrap_bit1, true)
-        end
-    end)
+    InstanceExtManager.add_skill_bullet_callback(self, 0, "drifter_scrap_bar_fix", "attack",
+        function(attack_info, hit_list)
+            if not Net.is_client() then
+                local attack_info_ = Attack_Info.wrap(attack_info)
+                attack_info_:set_attack_flags(Attack_Info.ATTACK_FLAG.drifter_scrap_bit1, true)
+            end
+        end)
 end)
 memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h+18h]"}, {"RValue*", "CInstance*"}, 0,
     gm.get_object_function_address("gml_Object_oDrifterRec_Collision_oP"):add(480), function(args)
@@ -106,7 +104,7 @@ local function initialize_array(target, member, num)
         target[member] = target.sprite_index
     end
     if target[member .. "_half"] == nil or gm.array_length(target[member .. "_half"]) == 0 then
-        target[member .. "_half"] = gm.array_create(num, 0.0)
+        target[member .. "_half"] = gm.array_create(num, 0)
         gm.array_set(target[member .. "_half"], 0, target[member])
         gm.array_set(target[member .. "_half"], 1, target[member])
     end
