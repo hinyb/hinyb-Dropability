@@ -1,10 +1,11 @@
+HookSystem.clean_hook()
 local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
 Utils = {}
-Utils.to_string_with_floor = function (number)
+Utils.to_string_with_floor = function(number)
     return tostring(math.floor(number))
 end
-Utils.simple_shuffle_table = function (t)
+Utils.simple_shuffle_table = function(t)
     local n = #t
     for i = n, 2, -1 do
         local j = math.random(i)
@@ -28,7 +29,7 @@ Utils.find_instance_with_m_id = function(object_index, m_id)
             return inst
         end
     end
-    log.error("Can't find instance" .. object_index .. "with m_id" .. m_id, 2)
+    log.error("Can't find instance", object_index, "with m_id", m_id, 2)
 end
 Utils.check_asset_with_name = function(namespace, identifier)
     local lookup = ResourceManager.__namespacedAssetLookup
@@ -84,13 +85,13 @@ Utils.get_random_buff = function(is_timed, isdebuff)
         end
     end
 end
-Utils.get_random_seed = function ()
+Utils.get_random_seed = function()
     return gm.array_get(gm.rng_create(), 0)
 end
-Utils.clamp = function (value, min_value, max_value)
+Utils.clamp = function(value, min_value, max_value)
     return math.max(min_value, math.min(value, max_value))
 end
-Utils.lerp = function (a, b, t)
+Utils.lerp = function(a, b, t)
     return a + (b - a) * t
 end
 Utils.find_item_with_localized = function(name, player)
@@ -234,7 +235,7 @@ Utils.table_get_length = function(table)
     end
     return result
 end
-Utils.get_inst_safe = function (inst)
+Utils.get_inst_safe = function(inst)
     return type(inst) == "number" and gm.CInstance.instance_id_to_CInstance[inst] or inst
 end
 local instance_list = {}
@@ -251,12 +252,18 @@ end
 Utils.unhook_instance_create = function()
     instance_create_flag = false
 end
-gm.post_script_hook(gm.constants.instance_create_depth, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.instance_create_depth, function(self, other, result, args)
     if instance_create_flag and not Helper.table_has(instance_filter, result.value:get_object_index_self()) then
         table.insert(instance_list, result.value)
     end
 end)
-gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     ResourceManager = gm.variable_global_get("ResourceManager_object")
 end)
+
+local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/Utils_Extras")
+for _, name in ipairs(names) do
+    require(name)
+end
+
 return Utils

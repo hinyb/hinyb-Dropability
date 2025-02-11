@@ -1,3 +1,4 @@
+HookSystem.clean_hook()
 local drop_item_send
 local drop_item_id_list = {}
 drop_item = function(player, item_id, item_object_id)
@@ -18,7 +19,7 @@ local function init()
     end
 end
 
-gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     if not Net.is_client() then
         drop_item = function(player, item_id, item_object_id)
             if gm.item_count(player, item_id, 0) >= 1 then
@@ -35,12 +36,12 @@ end)
 
 local cached_dup_num
 local pickup_is_dropped = false
-gm.pre_script_hook(gm.constants.item_give_internal, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants.item_give_internal, function(self, other, result, args)
     if (cached_dup_num ~= nil) then
         gm.array_set(args[1].value.inventory_item_stack, 95, cached_dup_num)
     end
 end)
-gm.pre_script_hook(gm.constants.item_give, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants.item_give, function(self, other, result, args)
     local actor = args[1].value
     for index, item_id in pairs(drop_item_id_list) do
         if (item_id == actor.id) then
@@ -51,13 +52,13 @@ gm.pre_script_hook(gm.constants.item_give, function(self, other, result, args)
         end
     end
 end)
-gm.post_script_hook(gm.constants.item_give, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.item_give, function(self, other, result, args)
     if pickup_is_dropped then
         cached_dup_num = nil
         pickup_is_dropped = false
     end
 end)
-gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drop_item_id_list = {}
 end)
 Initialize(init)

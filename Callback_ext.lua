@@ -1,3 +1,4 @@
+HookSystem.clean_hook()
 Callback_ext = {}
 local pre_callbacks = {}
 local post_callbacks = {}
@@ -63,14 +64,14 @@ function Callback_ext.remove_capture_instance(callback_id, name)
     Callback_ext.remove_post_callback(callback_id, name)
 end
 
-gm.pre_script_hook(gm.constants.callback_execute, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants.callback_execute, function(self, other, result, args)
     if pre_callbacks[args[1].value] then
         for _, fn in pairs(pre_callbacks[args[1].value]) do
             fn(self, other, result, args)
         end
     end
 end)
-gm.post_script_hook(gm.constants.callback_execute, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.callback_execute, function(self, other, result, args)
     if post_callbacks[args[1].value] then
         for _, fn in pairs(post_callbacks[args[1].value]) do
             fn(self, other, result, args)

@@ -1,3 +1,4 @@
+HookSystem.clean_hook()
 Callable_call = {}
 local pre_callbacks = {}
 local post_callbacks = {}
@@ -63,7 +64,7 @@ function Callable_call.remove_capture_instance(callback_name, name)
     Callable_call.remove_post_callback(callback_name, name)
 end
 
-gm.pre_script_hook(gm.constants.callable_call, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants.callable_call, function(self, other, result, args)
     local script = args[1].value
     if script and type(script.callable_value) ~= "number" then
         if pre_callbacks[script.callable_value.script_name] then
@@ -74,7 +75,7 @@ gm.pre_script_hook(gm.constants.callable_call, function(self, other, result, arg
     end
 end)
 
-gm.post_script_hook(gm.constants.callable_call, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.callable_call, function(self, other, result, args)
     local script = args[1].value
     if script and type(script.callable_value) ~= "number" then
         if post_callbacks[script.callable_value.script_name] then

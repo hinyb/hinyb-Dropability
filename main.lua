@@ -12,18 +12,17 @@ mods.on_all_mods_loaded(function()
     params = Toml.config_update(_ENV["!guid"], params)
 end)
 
+require("Dynamic")
+require("HookSystem")
+require("InstanceExtManager")
 require("Utils")
 require("SkillPickup")
 require("drop_item")
 require("CompatibilityPatch")
-require("Dynamic")
 require("Callback_ext")
 require("Callable_call")
-require("Instance_ext")
-require("GameStyleManager")
-require("HookSystem")
 
-local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/Utils_Extras")
+local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/InstanceExtRegs")
 for _, name in ipairs(names) do
     require(name)
 end
@@ -37,23 +36,23 @@ public_things = {
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,
     ["Dynamic"] = Dynamic,
-    ["Instance_ext"] = Instance_ext,
     ["Callback_ext"] = Callback_ext,
     ["Callable_call"] = Callable_call,
     ["CompatibilityPatch"] = CompatibilityPatch,
-    ["GameStyleManager"] = GameStyleManager,
-    ["HookSystem"] = HookSystem
+    ["HookSystem"] = HookSystem,
+    ["InstanceExtManager"] = InstanceExtManager
 
 } -- Maybe using a wrong way
 require("./envy_setup")
 
 local tooltip
 
-gm.post_script_hook(gm.constants.ui_hover_tooltip, function(self, other, result, args)
+HookSystem.clean_hook()
+HookSystem.post_script_hook(gm.constants.ui_hover_tooltip, function(self, other, result, args)
     tooltip = args[3].value
 end)
 
-gm.post_script_hook(gm.constants.hud_draw_skill_info, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.hud_draw_skill_info, function(self, other, result, args)
     if ImGui.IsKeyPressed(params['drop_key'], false) then
         local skill = gm.array_get(args[1].value.skills, args[2].value).active_skill
         if skill.skill_id ~= 0 then

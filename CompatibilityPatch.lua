@@ -1,6 +1,7 @@
+HookSystem.clean_hook()
 local drifter_scarp_bar_list = {}
 CompatibilityPatch = {}
-gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drifter_scarp_bar_list = {}
 end)
 SkillPickup.add_pre_local_drop_func(function(inst, skill)
@@ -12,7 +13,7 @@ SkillPickup.add_pre_local_drop_func(function(inst, skill)
         end
     end
 end)
-gm.post_script_hook(gm.constants._survivor_sniper_find_drone, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants._survivor_sniper_find_drone, function(self, other, result, args)
     if result.value == -4 then
         local player = args[1].value
         local drone = gm.instance_create(player.x, player.y, gm.constants.oSniperDrone)
@@ -22,13 +23,13 @@ gm.post_script_hook(gm.constants._survivor_sniper_find_drone, function(self, oth
 end)
 -- It seems like _survivor_miner_find_heat_bar's args can't get id correctly.
 -- Maybe I did somewhere wrong in create_heat_bar.
-gm.pre_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
     if type(args[1].value) ~= "number" then
         args[1].value = args[1].value.id
     end
 end)
 local miner_heat_bar_flag = false
-gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
     if not miner_heat_bar_flag then
         if result.value == -4 or result.value == 0 then
             local player = gm.CInstance.instance_id_to_CInstance[args[1].value]
@@ -48,14 +49,14 @@ gm.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, o
         end
     end
 end)
-gm.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = true
 end)
-gm.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = false
     -- I think this is safe to use.
     -- But it may have issues, if anything happens, please let me know.
-    Instance_ext.add_skill_bullet_fake_hit_actually_attack(self, 0, "miner_heat_bar_fix",
+    InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(self, 0, "miner_heat_bar_fix",
         function(attack_info, hit_target)
             local skill = gm.array_get(self.skills, 0).active_skill
             if skill.skill_id ~= 57 and skill.skill_id ~= 62 then
@@ -66,7 +67,7 @@ end)
 -- So weird, it seems like 'self' must be a skill, but in gml_Script__survivor_drifter_create_scrap_bar, it pass an oP. This is really confusing.
 -- And gm.call can't pass 'self' as a YYObjectBase*, might have to use memory.dynamic_cal. So, I decided not to replace the result.
 local drifter_scrap_bar_flag = false
-gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self, other, result, args)
     if not drifter_scrap_bar_flag then
         if result.value == -4 or result.value == 0 then
             if args[1].value.dead ~= 1 then
@@ -77,12 +78,12 @@ gm.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self
         end
     end
 end)
-gm.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
     drifter_scrap_bar_flag = true
 end)
-gm.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
     drifter_scrap_bar_flag = false
-    Instance_ext.add_skill_bullet_callback(self, 0, "drifter_scrap_bar_fix", "attack", function(attack_info, hit_list)
+    InstanceExtManager.add_skill_bullet_callback(self, 0, "drifter_scrap_bar_fix", "attack", function(attack_info, hit_list)
         if not Net.is_client() then
             local attack_info_ = Attack_Info.wrap(attack_info)
             attack_info_:set_attack_flags(Attack_Info.ATTACK_FLAG.drifter_scrap_bit1, true)
@@ -149,12 +150,12 @@ CompatibilityPatch.has_scrap_bar = function(actor)
         return false
     end
 end
-gm.post_script_hook(gm.constants.init_class, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.init_class, function(self, other, result, args)
     CompatibilityPatch.set_compat(self)
 end)
 
 -- For monsterShamGX
-gm.post_script_hook(100561, function(self, other, result, args)
+HookSystem.post_script_hook(100561, function(self, other, result, args)
     if math.abs(self.image_index - 6) <= 1e-5 then
         local mobs = Array.wrap(args[1].value.totem_spawn_id)
         for i = 0, mobs:size() - 1 do
@@ -173,7 +174,7 @@ gm.post_script_hook(100561, function(self, other, result, args)
 end)
 
 ---- monster ----
-gm.post_script_hook(gm.constants.set_state_gml_Object_oArtiSnap_Create_0, function(self, other, result, args)
+HookSystem.post_script_hook(gm.constants.set_state_gml_Object_oArtiSnap_Create_0, function(self, other, result, args)
     if self.team == 2.0 then
         self.is_character_enemy_targettable = 0.0
         gm.call("gml_Script___actor_update_target_marker", self, self)
@@ -187,7 +188,7 @@ memory.dynamic_hook_mid("tentacle_hp_color_fix", {"rdi", "r12"}, {"RValue*", "RV
             end)
         end
     end)
-gm.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, other, result, args)
+HookSystem.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, other, result, args)
     if self.team ~= 1.0 then
         Instance.wrap(self):add_callback("onStatRecalc", "hud_health_color_reset", function(actor)
             actor.hud_health_color = 5032411.0
@@ -199,7 +200,7 @@ gm.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, other, re
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
-gm.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, other, result, args)
+HookSystem.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, other, result, args)
     if self.team ~= 1.0 then
         Instance.wrap(self):add_callback("onStatRecalc", "hud_health_color_reset", function(actor)
             actor.hud_health_color = 5032411.0
@@ -218,7 +219,7 @@ memory.dynamic_hook_mid("huntressX2fix", {"rax", "[rbp+2C0h+18h]"}, {"RValue*", 
         args[2].total_trirang = (args[2].total_trirang or 0) + 1
         args[1].value.parent_skill = args[2]
     end)
-gm.pre_code_execute("gml_Object_oHuntressTrirang_Destroy_0", function(self, other)
+HookSystem.pre_code_execute("gml_Object_oHuntressTrirang_Destroy_0", function(self, other)
     if self.parent_skill then
         self.parent_skill.total_trirang = self.parent_skill.total_trirang - 1
     end
@@ -299,7 +300,7 @@ memory.dynamic_hook_mid("handX_fix_angle", {"rbp+410h-438h", "[rbp+410h+10h]"}, 
             args[1].value = args[1].value + args[2].angle_offsest
         end
     end)
-gm.pre_script_hook(gm.constants.skill_activate, function(self, other, result, args)
+HookSystem.pre_script_hook(gm.constants.skill_activate, function(self, other, result, args)
     local skill = gm.array_get(self.skills, args[1].value).active_skill
     local drone_type = Utils.get_handy_drone_type(skill.skill_id)
     if drone_type then

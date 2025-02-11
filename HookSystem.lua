@@ -4,6 +4,8 @@ local enable_post_script_hooks = {}
 local enable_pre_code_executes = {}
 local enable_post_code_executes = {}
 
+local special_hooks = {}
+
 function HookSystem.clean_hook()
     local caller_file = debug.getinfo(2, "S").source
     local identifier = caller_file:match("ReturnOfModding[/\\]plugins[/\\](.+)$")
@@ -19,12 +21,13 @@ function HookSystem.clean_hook()
     for _, hooks in pairs(enable_post_code_executes) do
         hooks[identifier] = nil
     end
+    for _, hooks in pairs(special_hooks) do
+        hooks[identifier] = nil
+    end
 end
 local function script_hook_internal(hook_table, script_index, fn)
-    Utils.log_information(hook_table)
     local caller_file = debug.getinfo(3, "S").source
     local identifier = caller_file:match("ReturnOfModding[/\\]plugins[/\\](.+)$")
-    log.info(caller_file, identifier)
     local script_hooks = hook_table[script_index]
     if not script_hooks then
         script_hooks = {}
@@ -101,9 +104,38 @@ local function code_execute_internal(execute_table, code_name, fn)
 
     identifier_executes[#identifier_executes + 1] = fn
 end
-function HookSystem.pre_code_execute(script_index, fn)
-    code_execute_internal(enable_pre_code_executes, script_index, fn)
+function HookSystem.pre_code_execute(code_name, fn)
+    code_execute_internal(enable_pre_code_executes, code_name, fn)
 end
-function HookSystem.post_code_execute(script_index, fn)
-    code_execute_internal(enable_post_code_executes, script_index, fn)
+function HookSystem.post_code_execute(code_name, fn)
+    code_execute_internal(enable_post_code_executes, code_name, fn)
+end
+
+function HookSystem.register_special_hook(hook_name, callbacks_table)
+    if special_hooks[hook_name] then
+        log.error("The special hook is alreadly existed", 2)
+    end
+    special_hooks[hook_name] = callbacks_table
+end
+
+function HookSystem.add_special_hook(hook_name, fn)
+    local hooks = special_hooks[hook_name]
+    if not hooks then
+        log.error("Try to add a non-existed special hook", 2)
+    end
+    local caller_file = debug.getinfo(2, "S").source
+    local identifier = caller_file:match("ReturnOfModding[/\\]plugins[/\\](.+)$")
+
+    local identifier_hooks = hooks[identifier]
+    if not identifier_hooks then
+        identifier_hooks = {}
+        hooks[identifier] = identifier_hooks
+    end
+
+    identifier_hooks[#identifier_hooks + 1] = fn
+end
+
+local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/DynamicRegs")
+for _, name in ipairs(names) do
+    require(name)
 end

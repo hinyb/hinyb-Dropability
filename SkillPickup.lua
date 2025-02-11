@@ -1,3 +1,4 @@
+HookSystem.clean_hook()
 SkillPickup = {}
 -- May need to refactor
 -- Now the sync part still has some issue.
@@ -154,7 +155,7 @@ local function init()
     skillPickup.obj_sprite = 114
     skillPickup.obj_depth = 5.0
     local pickup_skill_message_create
-    gm.pre_script_hook(gm.constants.interactable_set_active, function(self, other, result, args)
+    HookSystem.pre_script_hook(gm.constants.interactable_set_active, function(self, other, result, args)
         local inst = args[1].value
         if inst.__object_index == skillPickup.value then
             local actor = args[2].value
@@ -235,7 +236,7 @@ local function init()
         end
         return sync_message
     end
-    gm.post_script_hook(gm.constants.run_create, function(self, other, result, args)
+    HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
         if Net.is_single() then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
