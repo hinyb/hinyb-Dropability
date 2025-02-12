@@ -1,5 +1,4 @@
 HookSystem.clean_hook()
-local ResourceManager = gm.variable_global_get("ResourceManager_object")
 math.randomseed(os.time())
 Utils = {}
 Utils.to_string_with_floor = function(number)
@@ -30,14 +29,6 @@ Utils.find_instance_with_m_id = function(object_index, m_id)
         end
     end
     log.error("Can't find instance", object_index, "with m_id", m_id, 2)
-end
-Utils.check_asset_with_name = function(namespace, identifier)
-    local lookup = ResourceManager.__namespacedAssetLookup
-    if gm.variable_instance_exists(lookup, namespace) and gm.variable_instance_exists(lookup[namespace], identifier) then
-        return lookup[namespace][identifier]
-    else
-        return false
-    end
 end
 Utils.LCG_random = function(seed)
     local state = seed or os.time()
@@ -256,9 +247,6 @@ HookSystem.post_script_hook(gm.constants.instance_create_depth, function(self, o
     if instance_create_flag and not Helper.table_has(instance_filter, result.value:get_object_index_self()) then
         table.insert(instance_list, result.value)
     end
-end)
-HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-    ResourceManager = gm.variable_global_get("ResourceManager_object")
 end)
 
 local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/Utils_Extras")

@@ -52,7 +52,3 @@ function InstanceExtManager.callback_exists(instance, callback, name)
     end
     return callbacks[name] ~= nil
 end
-HookSystem.clean_hook()
-HookSystem.post_script_hook(gm.constants.run_destroy, function(self, other, result, args)
-    callbacks = {}
-end)

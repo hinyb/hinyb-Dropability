@@ -1,6 +1,7 @@
 -- This might be unnecessary.
 -- But since I've already written it, I'll keep it.
 -- need time to improve it.
+-- hit can only change damage, damage_info should be changed at attack.
 local skill_captrue_callbacks = {}
 function InstanceExtManager.add_skill_instance_captrue(actor, slot_index, name, deal_func)
     local new_to_create_flag = false
@@ -219,8 +220,8 @@ end
 -- This runs on both the client and server, but when the server's damager_attack_process changes, the client will be synced.
 -- This should only call on local.
 function InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(actor, slot_index, name, deal_func)
-    InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, "attack", function(attack_info, hit_list)
-        for i = 0, gm.ds_list_size(hit_list) - 1, 3 do
+    InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, "attack", function(attack_info, hit_list, max_index)
+        for i = 0, max_index - 1, 3 do
             local hit_target = gm.ds_list_find_value(hit_list, i)
             if type(hit_target) ~= "number" then
                 if Instance.exists(hit_target) then
@@ -238,3 +239,130 @@ function InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(actor, slo
         end
     end)
 end
+
+HookSystem.clean_hook()
+HookSystem.post_script_hook(gm.constants.write_attackinfo, function(self, other, result, args)
+    local attack_info = args[1].value
+    local bit_array = 0
+    for i = 1, #attack_info_table_order do
+        local type = attack_info_table_order[i]
+        local attack_info_callbacks_ = attack_info["attack_info_callbacks_" .. type]
+        if attack_info_callbacks_ then
+            bit_array = bit_array | (1 << (i - 1))
+        end
+    end
+    self:writebyte(bit_array)
+    for i = 1, #attack_info_table_order do
+        local type = attack_info_table_order[i]
+        local attack_info_callbacks_ = attack_info["attack_info_callbacks_" .. type]
+        if attack_info_callbacks_ then
+            local table = Utils.create_table_from_array(attack_info_callbacks_)
+            self:writestring(Utils.simple_table_to_string(table))
+        end
+    end
+end)
+
+HookSystem.post_script_hook(gm.constants.read_attackinfo, function(self, other, result, args)
+    local bit_array = self:readbyte()
+    for i = 1, #attack_info_table_order do
+        local sign = (bit_array >> (i - 1)) & 1
+        if sign == 1 then
+            local type = attack_info_table_order[i]
+            local table = Utils.simple_string_to_table(self:readstring())
+            result.value["attack_info_callbacks_" .. type] = Utils.create_array_from_table(table)
+        end
+    end
+end)
+
+HookSystem.pre_script_hook(gm.constants.damager_attack_process, function(self, other, result, args)
+    local attack_info_callbacks_attack = args[1].value.attack_info_callbacks_attack
+    if attack_info_callbacks_attack then
+        local callbacks_wrapped = Array.wrap(attack_info_callbacks_attack)
+        local flag = true
+        for i = 0, callbacks_wrapped:size() - 1 do
+            local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
+            if attack_info_callbacks_ and attack_info_callbacks_["attack"] then
+                local flag_, result_ = attack_info_callbacks_["attack"](args[1].value, args[2].value, args[3].value)
+                if flag_ == false then
+                    flag = false
+                end
+                if result_ then
+                    result.value = result_
+                end
+            end
+        end
+        return flag
+    end
+end)
+--[[
+{ name = 'hit_info' },
+{ name = 'target' },
+{ name = 'target' },
+{ name = 'target_x' },
+{ name = 'target_y' },
+{ name = 'damage' },
+{ name = 'critical' },
+{ name = 'hit_list_index' },
+{ name = 'is_attack_authority' }
+]]
+HookSystem.pre_script_hook(gm.constants.damager_hit_process, function(self, other, result, args)
+    local attack_info_callbacks_hit = args[1].value.attack_info_callbacks_hit
+    if attack_info_callbacks_hit then
+        local callbacks_wrapped = Array.wrap(attack_info_callbacks_hit)
+        local flag = true
+        for i = 0, callbacks_wrapped:size() - 1 do
+            local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
+            if attack_info_callbacks_ and attack_info_callbacks_["hit"] then
+                local flag_, result_ = attack_info_callbacks_["hit"](args[1].value, args[2].value)
+                if flag_ == false then
+                    flag = false
+                end
+                if result_ then
+                    result.value = result_
+                end
+            end
+        end
+        args[6].value = args[1].value.damage
+        args[7].value = args[1].value.critical
+        return flag
+    end
+end)
+
+local callbacks = InstanceExtManager.callbacks
+memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"[rbp+9D0h-A10h]", "rsp+0AD0h-A60h"}, {"RValue**", "RValue*"}, 0,
+    gm.get_script_function_address(gm.constants.damager_attack_process):add(27333), function(args)
+        local victim = args[2].value
+        if type(victim) == "number" then
+            log.warning("If you see this message, please report it")
+            gm.show_debug_message(gm.debug_get_callstack())
+            return false
+        end
+        if callbacks[victim.id] and callbacks[victim.id]["post_be_kill_proc"] then
+            callbacks[victim.id]["post_be_kill_proc"] = nil
+        end
+        local attack_info = memory.resolve_pointer_to_type(args[1]:deref():get_address(), "RValue*").value
+        local attack_info_callbacks_kill = attack_info.attack_info_callbacks_kill
+        if attack_info_callbacks_kill then
+            if callbacks[victim.id] == nil then
+                callbacks[victim.id] = {}
+            end
+            if callbacks[victim.id]["post_be_kill_proc"] == nil then
+                callbacks[victim.id]["post_be_kill_proc"] = {}
+            end
+            local callbacks_wrapped = Array.wrap(attack_info_callbacks_kill)
+            for i = 0, callbacks_wrapped:size() - 1 do
+                local attack_info_callbacks_ = attack_info_callbacks[callbacks_wrapped:get(i)]
+                if attack_info_callbacks_ and attack_info_callbacks_["kill"] then
+                    table.insert(callbacks[victim.id]["post_be_kill_proc"], attack_info_callbacks_["kill"])
+                end
+            end
+        end
+    end)
+Callback_ext.add_post_callback(40, "on_all_KillProc_callback", function(self, other, result, args)
+    local victim = args[2].value
+    if callbacks[victim.id] and callbacks[victim.id]["post_be_kill_proc"] then
+        for _, func in pairs(callbacks[victim.id]["post_be_kill_proc"]) do
+            func(victim, args[3].value)
+        end
+    end
+end)

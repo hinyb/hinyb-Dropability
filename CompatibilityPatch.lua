@@ -5,12 +5,14 @@ HookSystem.post_script_hook(gm.constants.run_create, function(self, other, resul
     drifter_scarp_bar_list = {}
 end)
 SkillPickup.add_pre_local_drop_func(function(inst, skill)
-    if skill.skill_id == 68 or skill.skill_id == 69 then
-        local drone = gm.call("gml_Script__survivor_sniper_find_drone", inst, inst, inst)
-        if type(drone) ~= "number" then
-            drone:instance_destroy_sync()
-            gm.instance_destroy(drone)
-        end
+    local skill_id = skill.skill_id
+    if skill_id ~= 68 and skill_id ~= 69 then
+        return
+    end
+    local drone = gm.call("gml_Script__survivor_sniper_find_drone", inst, inst, inst)
+    if type(drone) ~= "number" then
+        drone:instance_destroy_sync()
+        gm.instance_destroy(drone)
     end
 end)
 HookSystem.post_script_hook(gm.constants._survivor_sniper_find_drone, function(self, other, result, args)
@@ -30,24 +32,27 @@ HookSystem.pre_script_hook(gm.constants._survivor_miner_find_heat_bar, function(
 end)
 local miner_heat_bar_flag = false
 HookSystem.post_script_hook(gm.constants._survivor_miner_find_heat_bar, function(self, other, result, args)
-    if not miner_heat_bar_flag then
-        if result.value == -4 or result.value == 0 then
-            local player = gm.CInstance.instance_id_to_CInstance[args[1].value]
-            if not player.dead then
-                gm.call("gml_Script__survivor_miner_create_heat_bar", player, player)
-                if player.class ~= 6.0 then
-                    local actor = Instance.wrap(player)
-                    actor:add_callback("onPostStep", "miner_heat_bar_fix", function(inst)
-                        local cache_class = inst.class
-                        inst.class = 6.0
-                        gm.get_script_ref(102162)(inst.value, inst.value, inst.value)
-                        inst.class = cache_class
-                    end)
-                end
-                result.value = gm.call("gml_Script__survivor_miner_find_heat_bar", player, player, args[1].value)
-            end
-        end
+    if miner_heat_bar_flag then
+        return
     end
+    if result.value ~= -4 and result.value ~= 0 then
+        return
+    end
+    local player = gm.CInstance.instance_id_to_CInstance[args[1].value]
+    if player.dead then
+        return
+    end
+    gm.call("gml_Script__survivor_miner_create_heat_bar", player, player)
+    if player.class ~= 6.0 then
+        local actor = Instance.wrap(player)
+        actor:add_callback("onPostStep", "miner_heat_bar_fix", function(inst)
+            local cache_class = inst.class
+            inst.class = 6.0
+            gm.get_script_ref(102162)(inst.value, inst.value, inst.value)
+            inst.class = cache_class
+        end)
+    end
+    result.value = gm.call("gml_Script__survivor_miner_find_heat_bar", player, player, args[1].value)
 end)
 HookSystem.pre_script_hook(gm.constants._survivor_miner_create_heat_bar, function(self, other, result, args)
     miner_heat_bar_flag = true
@@ -65,14 +70,16 @@ end)
 -- And gm.call can't pass 'self' as a YYObjectBase*, might have to use memory.dynamic_cal. So, I decided not to replace the result.
 local drifter_scrap_bar_flag = false
 HookSystem.post_script_hook(gm.constants._survivor_drifter_find_scrap_bar, function(self, other, result, args)
-    if not drifter_scrap_bar_flag then
-        if result.value == -4 or result.value == 0 then
-            if args[1].value.dead ~= 1 then
-                local player = args[1].value
-                gm.call("gml_Script__survivor_drifter_create_scrap_bar", player, player)
-                drifter_scarp_bar_list[args[1].value.id] = true
-            end
-        end
+    if drifter_scrap_bar_flag then
+        return
+    end
+    if result.value ~= -4 and result.value ~= 0 then
+        return
+    end
+    if args[1].value.dead ~= 1 then
+        local player = args[1].value
+        gm.call("gml_Script__survivor_drifter_create_scrap_bar", player, player)
+        drifter_scarp_bar_list[args[1].value.id] = true
     end
 end)
 HookSystem.pre_script_hook(gm.constants._survivor_drifter_create_scrap_bar, function(self, other, result, args)
@@ -105,8 +112,9 @@ local function initialize_array(target, member, num)
     end
     if target[member .. "_half"] == nil or gm.array_length(target[member .. "_half"]) == 0 then
         target[member .. "_half"] = gm.array_create(num, 0)
-        gm.array_set(target[member .. "_half"], 0, target[member])
-        gm.array_set(target[member .. "_half"], 1, target[member])
+        for i = 0, num - 1 do
+            gm.array_set(target[member .. "_half"], i, target[member])
+        end
     end
 end
 CompatibilityPatch.set_compat = function(self)
@@ -154,20 +162,21 @@ end)
 
 -- For monsterShamGX
 HookSystem.post_script_hook(100561, function(self, other, result, args)
-    if math.abs(self.image_index - 6) <= 1e-5 then
-        local mobs = Array.wrap(args[1].value.totem_spawn_id)
-        for i = 0, mobs:size() - 1 do
-            local mob_warrped = Instance.wrap(mobs:get(i))
-            if args[1].value.team == 1 then
-                if not mob_warrped:callback_exists("draw_hp_bar_ally") then
-                    mob_warrped:add_callback("onPostDraw", "draw_hp_bar_ally", function(actor)
-                        actor.hud_health_color = 6804360.0
-                        actor:draw_hp_bar_ally()
-                    end)
-                end
+    if math.abs(self.image_index - 6) > 1e-5 then
+        return
+    end
+    local mobs = Array.wrap(args[1].value.totem_spawn_id)
+    for i = 0, mobs:size() - 1 do
+        local mob_warrped = Instance.wrap(mobs:get(i))
+        if args[1].value.team == 1 then
+            if not mob_warrped:callback_exists("draw_hp_bar_ally") then
+                mob_warrped:add_callback("onPostDraw", "draw_hp_bar_ally", function(actor)
+                    actor.hud_health_color = 6804360.0
+                    actor:draw_hp_bar_ally()
+                end)
             end
-            mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
         end
+        mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
     end
 end)
 
@@ -191,7 +200,7 @@ HookSystem.post_code_execute("gml_Object_oEngiTurretB_Alarm_3", function(self, o
         Instance.wrap(self):add_callback("onStatRecalc", "hud_health_color_reset", function(actor)
             actor.hud_health_color = 5032411.0
         end)
-        GM.actor_queue_dirty(self)
+        gm.actor_queue_dirty(self)
     end
     if self.team == 2.0 then
         self.is_character_enemy_targettable = 0.0
@@ -203,7 +212,7 @@ HookSystem.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, ot
         Instance.wrap(self):add_callback("onStatRecalc", "hud_health_color_reset", function(actor)
             actor.hud_health_color = 5032411.0
         end)
-        GM.actor_queue_dirty(self)
+        gm.actor_queue_dirty(self)
     end
     if self.team == 2.0 then
         self.is_character_enemy_targettable = 0.0

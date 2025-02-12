@@ -23,7 +23,8 @@ local function compile_parser(t, code_table, callback_name)
     return load(table.concat(code_table), nil, "t", {
         callbacks = callbacks,
         type = type,
-        pairs = pairs
+        pairs = pairs,
+        gm = gm
     })()
 end
 local script_code_table = {[[return
@@ -73,7 +74,7 @@ local script_parse_rules = {
         key = {"actor", "slot_index"},
         value = {"self"}
     }},
-    damager_attack_process_client = {"type(args[2].value) == \"number\" and args[2].value or args[2].value", {
+    damager_attack_process_client = {"type(args[3].value) == \"number\" and args[3].value or args[3].value", {
         key = {"hit_effect", "attack_flags", "victim", "tracer_kind", "tracer_col", "proc", "critical", "damage",
                "damage_color", "xscale", "x", "y", "rng_seed", "percent_hp", "team", "climb"},
         value = {}
@@ -101,9 +102,12 @@ local script_parse_rules = {
     attack_collision_resolve = {"self", {
         key = {"bullet", "target"},
         value = {"self"}
+    }},
+    actor_phy_move = {"self", {
+        key = {"actor"},
+        value = {"self"}
     }}
 }
-
 HookSystem.clean_hook()
 function InstanceExtRegs.register_script_callback(script_index, callback_name, is_pre, t)
     local hook_fn = is_pre and HookSystem.pre_script_hook or HookSystem.post_script_hook
@@ -121,6 +125,8 @@ InstanceExtRegs.register_script_callback(gm.constants.fire_explosion, "other_fir
 InstanceExtRegs.register_script_callback(gm.constants.actor_set_dead, "actor_set_dead", true)
 InstanceExtRegs.register_script_callback(gm.constants.actor_activity_set, "actor_activity_set", true)
 InstanceExtRegs.register_script_callback(gm.constants.attack_collision_resolve, "attack_collision_resolve", true)
+InstanceExtRegs.register_script_callback(gm.constants.actor_phy_move, "actor_phy_move", false)
+
 
 local code_parse_rules = {
     -- gml_Object_oP_Other_15 --
