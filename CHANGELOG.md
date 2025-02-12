@@ -1,3 +1,7 @@
+v3.2.0
+* Refactor Instance_ext
+* fix Running backwards with Robomando creates a missing texture.
+
 v3.1.13
 * Fix the new track api can't apply twice.
 * Finish monster's skill_blacklist.
