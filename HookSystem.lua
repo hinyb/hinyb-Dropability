@@ -3,26 +3,30 @@ local enable_pre_script_hooks = {}
 local enable_post_script_hooks = {}
 local enable_pre_code_executes = {}
 local enable_post_code_executes = {}
-
 local special_hooks = {}
 
+local function clean_hook_internal(callbacks_table, identifier)
+    for i = 1, #callbacks_table do
+        if callbacks_table[i].id == identifier then
+            table.remove(callbacks_table, i)
+        end
+    end
+end
+
+local exist_files_table = {}
 function HookSystem.clean_hook()
     local caller_file = debug.getinfo(2, "S").source
     local identifier = caller_file:match("ReturnOfModding[/\\]plugins[/\\](.+)$")
-    for _, hooks in pairs(enable_pre_script_hooks) do
-        hooks[identifier] = nil
+    if not exist_files_table[identifier] then
+        exist_files_table[identifier] = true
+        return
     end
-    for _, hooks in pairs(enable_post_script_hooks) do
-        hooks[identifier] = nil
-    end
-    for _, hooks in pairs(enable_pre_code_executes) do
-        hooks[identifier] = nil
-    end
-    for _, hooks in pairs(enable_post_code_executes) do
-        hooks[identifier] = nil
-    end
+    clean_hook_internal(enable_pre_script_hooks, identifier)
+    clean_hook_internal(enable_post_script_hooks, identifier)
+    clean_hook_internal(enable_pre_code_executes, identifier)
+    clean_hook_internal(enable_post_code_executes, identifier)
     for _, hooks in pairs(special_hooks) do
-        hooks[identifier] = nil
+        clean_hook_internal(hooks, identifier)
     end
 end
 local function script_hook_internal(hook_table, script_index, fn)
@@ -35,31 +39,23 @@ local function script_hook_internal(hook_table, script_index, fn)
         if hook_table == enable_pre_script_hooks then
             gm.pre_script_hook(script_index, function(self, other, result, args)
                 local need_to_interrupt = false
-                for _, funcs in pairs(script_hooks) do
-                    for i = 1, #funcs do
-                        need_to_interrupt = need_to_interrupt or funcs[i](self, other, result, args) == false
-                    end
+                for i = 1, #script_hooks do
+                    need_to_interrupt = need_to_interrupt or script_hooks[i].fn(self, other, result, args) == false
                 end
                 return not need_to_interrupt
             end)
         else
             gm.post_script_hook(script_index, function(self, other, result, args)
-                for _, funcs in pairs(script_hooks) do
-                    for i = 1, #funcs do
-                        funcs[i](self, other, result, args)
-                    end
+                for i = 1, #script_hooks do
+                    script_hooks[i].fn(self, other, result, args)
                 end
             end)
         end
     end
-
-    local identifier_hooks = script_hooks[identifier]
-    if not identifier_hooks then
-        identifier_hooks = {}
-        script_hooks[identifier] = identifier_hooks
-    end
-
-    identifier_hooks[#identifier_hooks + 1] = fn
+    script_hooks[#script_hooks + 1] = {
+        fn = fn,
+        id = identifier
+    }
 end
 function HookSystem.pre_script_hook(script_index, fn)
     script_hook_internal(enable_pre_script_hooks, script_index, fn)
@@ -78,31 +74,24 @@ local function code_execute_internal(execute_table, code_name, fn)
         if execute_table == enable_pre_code_executes then
             gm.pre_code_execute(code_name, function(self, other)
                 local need_to_interrupt = false
-                for _, funcs in pairs(code_executes) do
-                    for i = 1, #funcs do
-                        need_to_interrupt = need_to_interrupt or funcs[i](self, other) == false
-                    end
+                for i = 1, #code_executes do
+                    need_to_interrupt = need_to_interrupt or code_executes[i].fn(self, other) == false
                 end
                 return not need_to_interrupt
             end)
         else
             gm.post_code_execute(code_name, function(self, other)
-                for _, funcs in pairs(code_executes) do
-                    for i = 1, #funcs do
-                        funcs[i](self, other)
-                    end
+                for i = 1, #code_executes do
+                    code_executes[i].fn(self, other)
                 end
             end)
         end
     end
 
-    local identifier_executes = code_executes[identifier]
-    if not identifier_executes then
-        identifier_executes = {}
-        code_executes[identifier] = identifier_executes
-    end
-
-    identifier_executes[#identifier_executes + 1] = fn
+    code_executes[#code_executes + 1] = {
+        fn = fn,
+        id = identifier
+    }
 end
 function HookSystem.pre_code_execute(code_name, fn)
     code_execute_internal(enable_pre_code_executes, code_name, fn)
@@ -126,13 +115,10 @@ function HookSystem.add_special_hook(hook_name, fn)
     local caller_file = debug.getinfo(2, "S").source
     local identifier = caller_file:match("ReturnOfModding[/\\]plugins[/\\](.+)$")
 
-    local identifier_hooks = hooks[identifier]
-    if not identifier_hooks then
-        identifier_hooks = {}
-        hooks[identifier] = identifier_hooks
-    end
-
-    identifier_hooks[#identifier_hooks + 1] = fn
+    hooks[#hooks + 1] = {
+        fn = fn,
+        id = identifier
+    }
 end
 
 local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/DynamicRegs")

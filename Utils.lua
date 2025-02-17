@@ -85,6 +85,9 @@ end
 Utils.lerp = function(a, b, t)
     return a + (b - a) * t
 end
+Utils.degtorad = function (degrees)
+    return degrees * (math.pi / 180)
+end
 Utils.find_item_with_localized = function(name, player)
     local inventory = Array.wrap(player.inventory_item_order)
     for i = 0, inventory:size() - 1 do

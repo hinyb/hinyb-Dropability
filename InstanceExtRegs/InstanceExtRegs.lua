@@ -17,9 +17,10 @@ local function table_to_params(t)
 end
 local callbacks = InstanceExtManager.callbacks
 local function compile_parser(t, code_table, callback_name)
-    code_table[2] = t[1]
-    code_table[4] = callback_name
-    code_table[6] = table_to_params(t[2])
+    code_table[2] = t[3] or ""
+    code_table[4] = t[1]
+    code_table[6] = callback_name
+    code_table[8] = table_to_params(t[2])
     return load(table.concat(code_table), nil, "t", {
         callbacks = callbacks,
         type = type,
@@ -29,6 +30,7 @@ local function compile_parser(t, code_table, callback_name)
 end
 local script_code_table = {[[return
     function(self, other, result, args)
+        ]], nil, [[
         local id = ]], nil, [[.id
         local actor_callbacks = callbacks[id]
         if not actor_callbacks then
@@ -51,6 +53,7 @@ local script_code_table = {[[return
     ]]}
 local code_code_table = {[[return
     function(self, other)
+        ]], nil, [[
         local id = ]], nil, [[.id
         local actor_callbacks = callbacks[id]
         if not actor_callbacks then
@@ -90,15 +93,15 @@ local script_parse_rules = {
     other_fire_bullet = {"other", {
         key = {"true_parent", "parent", "bullet"},
         value = {"self", "other", "gm.variable_global_get(\"attack_bullet\")"}
-    }},
+    }, "if not other then return end"},
     other_fire_direct = {"other", {
         key = {"true_parent", "parent", "bullet"},
         value = {"self", "other", "gm.variable_global_get(\"attack_bullet\")"}
-    }},
+    }, "if not other then return end"},
     other_fire_explosion = {"other", {
         key = {"true_parent", "parent", "bullet"},
         value = {"self", "other", "gm.variable_global_get(\"attack_bullet\")"}
-    }},
+    }, "if not other then return end"},
     attack_collision_resolve = {"self", {
         key = {"bullet", "target"},
         value = {"self"}
@@ -106,6 +109,10 @@ local script_parse_rules = {
     actor_phy_move = {"self", {
         key = {"actor"},
         value = {"self"}
+    }},
+    damage_inflict_raw = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+        key = {"target", "hit_info"},
+        value = {}
     }}
 }
 HookSystem.clean_hook()
@@ -126,6 +133,7 @@ InstanceExtRegs.register_script_callback(gm.constants.actor_set_dead, "actor_set
 InstanceExtRegs.register_script_callback(gm.constants.actor_activity_set, "actor_activity_set", true)
 InstanceExtRegs.register_script_callback(gm.constants.attack_collision_resolve, "attack_collision_resolve", true)
 InstanceExtRegs.register_script_callback(gm.constants.actor_phy_move, "actor_phy_move", false)
+InstanceExtRegs.register_script_callback(gm.constants.damage_inflict_raw, "damage_inflict_raw", true)
 
 
 local code_parse_rules = {

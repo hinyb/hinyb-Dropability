@@ -35,7 +35,7 @@ HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, targe
     end
     local need_to_interrupt = false
     for _, fn in pairs(callbacks_) do
-        need_to_interrupt = need_to_interrupt or fn(target) == false
+        need_to_interrupt = need_to_interrupt or fn(target, event_number:get()) == false
     end
     return not need_to_interrupt
 end)
@@ -43,7 +43,8 @@ end)
 -- post part ---
 local post_event_type_map = {
     [3] = "post_step",
-    [8] = "post_draw"
+    [8] = "post_draw",
+    [0] = "post_create"
 }
 for _, name in pairs(post_event_type_map) do
     InstanceExtManager.enable_callback(name)
@@ -73,6 +74,6 @@ HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, targ
         return
     end
     for _, fn in pairs(callbacks_) do
-        fn(target)
+        fn(target, event_number:get())
     end
 end)

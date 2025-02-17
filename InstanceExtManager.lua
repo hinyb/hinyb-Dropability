@@ -23,7 +23,12 @@ function InstanceExtManager.add_callback(instance, callback, name, fn)
     callbacks[name] = fn
 end
 function InstanceExtManager.enable_callback(callback)
-    enable_callbacks[callback] = true
+    if enable_callbacks[callback] then
+        log.error("Trying to enable an already enabled callback", 2)
+    else
+        enable_callbacks[callback] = true
+        return true
+    end
 end
 function InstanceExtManager.remove_callback(instance, callback, name)
     local id = type(instance) == "number" and instance or instance.id

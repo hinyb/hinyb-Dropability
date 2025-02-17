@@ -3,7 +3,10 @@ function InstanceExtManager.add_on_anim_end(instance, name, fn)
     name = name .. "on_anim_end"
     if not InstanceExtManager.callback_exists(instance, "post_step", name) then
         local flag
-        InstanceExtManager.add_callback(instance, "post_step", name, function(instance)
+        InstanceExtManager.add_callback(instance, "post_step", name, function(instance, event_number)
+            if event_number ~= 2 then
+                return
+            end
             if flag == nil then
                 flag = instance.state_strafe_half
                 return
