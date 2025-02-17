@@ -303,6 +303,9 @@ Utils.find_skill_id_with_name = function(name)
         end
     end
 end
+Utils.add_random_skill_blacklist = function (skill_id)
+    random_skill_blacklist[skill_id] = true
+end
 Utils.check_random_skill = function(skill_id)
     return not random_skill_blacklist[skill_id]
 end

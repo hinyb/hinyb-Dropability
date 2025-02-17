@@ -1,7 +1,6 @@
 HookSystem.clean_hook()
 SkillPickup = {}
--- May need to refactor
--- Now the sync part still has some issue.
+-- Need to refactor
 SkillPickup.skill_create = function(x, y, skill_params)
     log.error("skill_create hasn't been initialized")
 end
@@ -36,7 +35,7 @@ SkillPickup.add_skill_override_check_func = function(fn)
     skill_override_check_funcs[#skill_override_check_funcs + 1] = fn
 end
 SkillPickup.add_skill_override_check_func(function(actor, skill)
-    return skill.skill_id == 0
+    return not Utils.check_random_skill(skill.skill_id)
 end)
 local function can_skill_override(actor, skill)
     for i = 1, #skill_override_check_funcs do
@@ -55,7 +54,7 @@ local skill_diff_table = {}
 SkillPickup.add_skill_diff = function(name, fn)
     skill_diff_table[name] = fn
 end
-local function get_active_skill_diff(skill)
+SkillPickup.get_active_skill_diff = function(skill)
     local result = {}
     result.skill_id = skill.skill_id
     result.slot_index = skill.slot_index
@@ -78,6 +77,27 @@ local function get_active_skill_diff(skill)
     end
     return result
 end
+SkillPickup.set_skill = function(actor, params, is_override)
+    if params.skill_id ~= nil and params.slot_index ~= nil then
+        local skill = gm.array_get(actor.skills, params.slot_index).active_skill
+        if not is_override then
+            if gm.bool(actor.is_local) and not can_skill_override(actor, skill) then
+                SkillPickup.drop_skill(actor, skill)
+            end
+        end
+        gm.actor_skill_set(actor, params.slot_index, params.skill_id)
+        skill = gm.array_get(actor.skills, params.slot_index).active_skill
+        if params.stock then
+            skill.stock = params.stock
+            gm._mod_ActorSkill_recalculateStats(skill)
+        end
+        for i = 1, #post_pickup_funcs do
+            post_pickup_funcs[i](actor, params, skill)
+        end
+    else
+        log.error("skill_pickup hasn't been initialized correctly", 2)
+    end
+end
 SkillPickup.drop_skill = function(player, skill)
     for i = 1, #skill_check_funcs do
         if skill_check_funcs[i](player, skill) == false then
@@ -87,7 +107,7 @@ SkillPickup.drop_skill = function(player, skill)
     for i = 1, #pre_local_drop_funcs do
         pre_local_drop_funcs[i](player, skill)
     end
-    local skill_params = get_active_skill_diff(skill)
+    local skill_params = SkillPickup.get_active_skill_diff(skill)
     for i = 1, #pre_local_drop_after_diff_funcs do
         pre_local_drop_after_diff_funcs[i](player, skill)
     end
@@ -131,23 +151,7 @@ local function init_skillPickup(target, skill_params, x, y)
 end
 local function init()
     local function setup_skill(inst, actor)
-        if inst.skill_id ~= nil and inst.slot_index ~= nil then
-            local skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-            if gm.bool(actor.is_local) and not can_skill_override(actor, skill) then
-                SkillPickup.drop_skill(actor, skill)
-            end
-            gm.actor_skill_set(actor, inst.slot_index, inst.skill_id)
-            skill = gm.array_get(actor.skills, inst.slot_index).active_skill
-            if inst.stock then
-                skill.stock = inst.stock
-                gm._mod_ActorSkill_recalculateStats(skill)
-            end
-            for i = 1, #post_pickup_funcs do
-                post_pickup_funcs[i](actor, inst, skill)
-            end
-        else
-            log.error("skill_pickup hasn't been initialized correctly", 2)
-        end
+        SkillPickup.set_skill(actor, inst)
         inst.activator = actor
     end
     local skillPickup = Object.new("hinyb", "skillPickup", Object.PARENT.interactable)
