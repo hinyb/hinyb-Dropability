@@ -285,6 +285,12 @@ local skill_id_to_slot = {
     [203] = 2, -- umbraMissile
     [204] = 2 -- umbraSnipe
 }
+Utils.is_survivor_skill = function (skill_id)
+    if skill_id >= 199 and skill_id <= 204 then
+        return false
+    end
+    return skill_id_to_slot[skill_id] ~= nil
+end
 Utils.get_empty_skill_num = function(inst)
     local result = 0
     local skill_arr = Array.wrap(inst.skills)

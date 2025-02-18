@@ -117,6 +117,7 @@ SkillPickup.drop_skill = function(player, skill)
     end
 end
 local pre_create_funcs = {}
+---@param fn function (skill_params, x, y)
 SkillPickup.add_pre_create_func = function(fn)
     pre_create_funcs[#pre_create_funcs + 1] = fn
 end
@@ -242,7 +243,7 @@ local function init()
         if Net.is_single() then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
-                    pre_create_funcs[i](skill_params)
+                    pre_create_funcs[i](skill_params, x, y)
                 end
                 local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
                 init_skillPickup(skill, skill_params, x - 20, y - 20)
@@ -250,14 +251,14 @@ local function init()
         elseif Net.is_host() then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
-                    pre_create_funcs[i](skill_params)
+                    pre_create_funcs[i](skill_params, x, y)
                 end
                 drop_skill(x, y, skill_params)
             end
         else
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
-                    pre_create_funcs[i](skill_params)
+                    pre_create_funcs[i](skill_params, x, y)
                 end
                 local sync_message = drop_skill_send(skill_params)
                 sync_message:send_to_host()

@@ -63,12 +63,9 @@ Utils.get_gaussian_random = function(mu, sigma)
     local z0 = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
     return mu + sigma * z0
 end
-Utils.get_random = function(...)
-    return math.random(...)
-end
 Utils.get_random_buff = function(is_timed, isdebuff)
     while true do
-        local buff_id = Utils.get_random(0, Class.Buff:get_size())
+        local buff_id = math.random(0, Class.Buff:get_size())
         if is_timed == nil or Class.Buff:get(buff_id):get(13) == is_timed then
             if isdebuff == nil or Class.Buff:get(buff_id):get(14) == isdebuff then
                 return buff_id
