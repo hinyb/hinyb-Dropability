@@ -113,6 +113,19 @@ local script_parse_rules = {
     damage_inflict_raw = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
         key = {"target", "hit_info"},
         value = {}
+    }},
+    actor_skill_set = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+        key = {"actor", "slot_index", "skill_id"},
+        value = {}
+    }},
+    -- I can't find a better way to solve it.
+    damage_inflict_internal_deduct_hp = {"self", {
+        key = {"victim", "source", "damage", "doEffects"},
+        value = {"self", "other", "args[1], args[2]"}
+    }},
+    recalculate_stats = {"self", {
+        key = {"actor"},
+        value = {"self"}
     }}
 }
 HookSystem.clean_hook()
@@ -134,7 +147,9 @@ InstanceExtRegs.register_script_callback(gm.constants.actor_activity_set, "actor
 InstanceExtRegs.register_script_callback(gm.constants.attack_collision_resolve, "attack_collision_resolve", true)
 InstanceExtRegs.register_script_callback(gm.constants.actor_phy_move, "actor_phy_move", false)
 InstanceExtRegs.register_script_callback(gm.constants.damage_inflict_raw, "damage_inflict_raw", true)
-
+InstanceExtRegs.register_script_callback(gm.constants.actor_skill_set, "actor_skill_set", false)
+InstanceExtRegs.register_script_callback(gm.constants.damage_inflict_internal_deduct_hp, "damage_inflict_internal_deduct_hp", true)
+InstanceExtRegs.register_script_callback(gm.constants.recalculate_stats, "recalculate_stats", false)
 
 local code_parse_rules = {
     -- gml_Object_oP_Other_15 --

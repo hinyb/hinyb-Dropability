@@ -17,9 +17,9 @@ function InstanceExtManager.add_callback(instance, callback, name, fn)
         callbacks = {}
         instance_callbacks[callback] = callbacks
     end
-    if callbacks[name] then
-        log.warning("Try to override callback:", callback, name)
-    end
+    -- if callbacks[name] then
+    --     log.warning("Try to override callback:", callback, name)
+    -- end
     callbacks[name] = fn
 end
 function InstanceExtManager.enable_callback(callback)

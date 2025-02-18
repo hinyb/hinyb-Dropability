@@ -24,10 +24,10 @@ local post_pickup_funcs = {}
 SkillPickup.add_post_pickup_func = function(fn)
     post_pickup_funcs[#post_pickup_funcs + 1] = fn
 end
-local skill_check_funcs = {}
+local skill_drop_check_funcs = {}
 ---@param fn function (actor, skill) this function used to check if the skill can be dropped or picked up.
-SkillPickup.add_skill_check_func = function(fn)
-    skill_check_funcs[#skill_check_funcs + 1] = fn
+SkillPickup.add_skill_drop_check_func = function(fn)
+    skill_drop_check_funcs[#skill_drop_check_funcs + 1] = fn
 end
 local skill_override_check_funcs = {}
 ---@param fn function (actor, skill) this function used to check if the skill can be overridden.
@@ -44,10 +44,8 @@ local function can_skill_override(actor, skill)
         end
     end
 end
-SkillPickup.add_skill_check_func(function(actor, skill)
-    if skill.skill_id == 16 or skill.skill_id == 70 or skill.skill_id == 71 then
-        return false
-    end
+SkillPickup.add_skill_drop_check_func(function(actor, skill)
+    return Utils.check_random_skill(skill.skill_id)
 end)
 local skill_diff_table = {}
 ---@param fn function (skill_diff_table, skill) this function used to check if the skill can be overridden.
@@ -99,8 +97,8 @@ SkillPickup.set_skill = function(actor, params, is_override)
     end
 end
 SkillPickup.drop_skill = function(player, skill)
-    for i = 1, #skill_check_funcs do
-        if skill_check_funcs[i](player, skill) == false then
+    for i = 1, #skill_drop_check_funcs do
+        if skill_drop_check_funcs[i](player, skill) == false then
             return false
         end
     end

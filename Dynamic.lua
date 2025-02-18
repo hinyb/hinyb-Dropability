@@ -14,4 +14,5 @@ Dynamic.oDrifterCube_Create_0 = memory.dynamic_call("int64_t", {"CInstance*", "C
 Dynamic.instance_destroy_deep_ptr = memory.scan_pattern("40 57 48 83 EC 70 41 8B C0")
 Dynamic.YYGML_NewWithIterator_ptr = memory.scan_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC 20 48 8B 02")
 Dynamic.Perform_Event_Object_ptr = memory.scan_pattern("48 89 5C 24 ? 55 41 54 41 57 48 83 EC 20 83 79")
+Dynamic.code_execute_ptr = memory.scan_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 7C 24 ? 41 56 48 83 EC 50")
 return Dynamic

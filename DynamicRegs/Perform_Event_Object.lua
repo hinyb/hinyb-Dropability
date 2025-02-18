@@ -1,12 +1,19 @@
 -- I am not sure if this hook will affect the performance.
 --[[
--- ev_destroy 1
--- ev_cleanup 12
--- ev_step 3
--- ev_draw 8
 -- ev_create 0
--- ev_other 7
+-- ev_destroy 1
 -- ev_alarm 2
+-- ev_step 3
+-- ev_step 4 -- I think it is for others
+-- ev_keyboard 5
+-- ev_mouse 6
+-- ev_other or ev_async 7
+-- ev_draw 8
+-- ev_key_press 9
+-- ev_key_release 10
+-- ev_pre_create 14
+
+-- ev_cleanup 12
 ]] --
 local pre_callbacks = {}
 local post_callbacks = {}

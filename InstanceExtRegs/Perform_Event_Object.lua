@@ -1,10 +1,20 @@
 HookSystem.clean_hook()
 --[[
+-- ev_create 0
 -- ev_destroy 1
--- ev_cleanup 12
+-- ev_alarm 2
 -- ev_step 3
+-- ev_step 4 -- I think it is for others
+-- ev_keyboard 5
+-- ev_mouse 6
+-- ev_other or ev_async 7
 -- ev_draw 8
-]]
+-- ev_key_press 9
+-- ev_key_release 10
+-- ev_pre_create 14
+
+-- ev_cleanup 12
+]] --
 
 --- pre part ---
 local callbacks = InstanceExtManager.callbacks
@@ -35,7 +45,11 @@ HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, targe
     end
     local need_to_interrupt = false
     for _, fn in pairs(callbacks_) do
-        need_to_interrupt = need_to_interrupt or fn(target, event_number:get()) == false
+        local flag = fn(target, event_number:get())
+        if flag == -1 then
+            return
+        end
+        need_to_interrupt = need_to_interrupt or flag == false
     end
     return not need_to_interrupt
 end)
@@ -74,6 +88,8 @@ HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, targ
         return
     end
     for _, fn in pairs(callbacks_) do
-        fn(target, event_number:get())
+        if fn(target, event_number:get()) == -1 then
+            return
+        end
     end
 end)
