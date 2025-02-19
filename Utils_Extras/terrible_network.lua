@@ -3,16 +3,6 @@ Utils.packet_type = {
     not_forward = 0,
     forward = 1
 }
-Utils.param_type = {
-    Instance = 0,
-    number = 1,
-    array = 2,
-    table = 3,
-    int = 4,
-    half = 5,
-    string = 6,
-    va_list = 7
-}
 -- May need use this to code cleanup
 -- It seems like _mod_net_message_getUniqueID's unique id is only unique within each mod
 -- Be careful this function should use in Initialize.

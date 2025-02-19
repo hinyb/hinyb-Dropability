@@ -12,6 +12,9 @@ mods.on_all_mods_loaded(function()
     params = Toml.config_update(_ENV["!guid"], params)
 end)
 
+mods["MGReturns-ENVY"].auto()
+envy = mods["MGReturns-ENVY"]
+
 require("Dynamic")
 require("HookSystem")
 require("InstanceExtManager")
@@ -27,8 +30,6 @@ for _, name in ipairs(names) do
     require(name)
 end
 
-mods["MGReturns-ENVY"].auto()
-envy = mods["MGReturns-ENVY"]
 public_things = {
     ["drop_item"] = function(player, item_id, item_object_id)
         return drop_item(player, item_id, item_object_id)

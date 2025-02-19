@@ -17,16 +17,12 @@ local function table_to_params(t)
 end
 local callbacks = InstanceExtManager.callbacks
 local function compile_parser(t, code_table, callback_name)
+    local env = setmetatable({callbacks = callbacks}, {__index = envy.getfenv()})
     code_table[2] = t[3] or ""
     code_table[4] = t[1]
     code_table[6] = callback_name
     code_table[8] = table_to_params(t[2])
-    return load(table.concat(code_table), nil, "t", {
-        callbacks = callbacks,
-        type = type,
-        pairs = pairs,
-        gm = gm
-    })()
+    return load(table.concat(code_table), nil, "t", env)()
 end
 local script_code_table = {[[return
     function(self, other, result, args)
