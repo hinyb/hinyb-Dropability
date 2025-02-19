@@ -82,7 +82,7 @@ end
 Utils.lerp = function(a, b, t)
     return a + (b - a) * t
 end
-Utils.degtorad = function (degrees)
+Utils.degtorad = function(degrees)
     return degrees * (math.pi / 180)
 end
 Utils.find_item_with_localized = function(name, player)
@@ -225,6 +225,16 @@ Utils.table_get_length = function(table)
         result = result + 1
     end
     return result
+end
+function Utils.table_deep_copy(t)
+    if type(t) ~= "table" then
+        return t
+    end
+    local copy = {}
+    for k,v in pairs(t) do
+        copy[k] = Utils.table_deep_copy(v)
+    end
+    return copy
 end
 Utils.get_inst_safe = function(inst)
     return type(inst) == "number" and gm.CInstance.instance_id_to_CInstance[inst] or inst

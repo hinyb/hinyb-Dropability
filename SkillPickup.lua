@@ -265,5 +265,21 @@ local function init()
             end
         end
     end)
+    local set_skill_sync_internal = Utils.create_sync_func([[
+        local params = Utils.table_deep_copy(a4)
+        params.slot_index = a2
+        params.skill_id = a3
+        SkillPickup.set_skill(a1, params, a5)
+    ]], {Utils.param_type.instance, Utils.param_type.byte, Utils.param_type.ushort, Utils.param_type.table,
+         Utils.param_type.byte})
+    SkillPickup.set_skill_sync = function(actor, params, is_override)
+        if is_override == nil then
+            is_override = false
+        end
+        local copy_params = Utils.table_deep_copy(params)
+        copy_params.slot_index = nil
+        copy_params.skill_id = nil
+        set_skill_sync_internal(actor, params.slot_index, params.skill_id, copy_params, is_override)
+    end
 end
 Initialize(init)
