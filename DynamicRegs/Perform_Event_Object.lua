@@ -4,7 +4,7 @@
 -- ev_destroy 1
 -- ev_alarm 2
 -- ev_step 3
--- ev_step 4 -- I think it is for others
+-- ev_step 4 -- I think it is for others, seems like it is collision
 -- ev_keyboard 5
 -- ev_mouse 6
 -- ev_other or ev_async 7
@@ -18,18 +18,18 @@
 local pre_callbacks = {}
 local post_callbacks = {}
 -- object_index controls which object's events are executed.
-memory.dynamic_hook("event_perform_internal", "int64_t", {"CInstance*", "RValue*", "int", "int", "int"},
-    Dynamic.Perform_Event_Object_ptr, function(ret_val, target, result, object_index, event_type, event_number)
+memory.dynamic_hook("event_perform_internal", "int64_t", {"CInstance*", "CInstance*", "int", "int", "int"},
+    Dynamic.Perform_Event_Object_ptr, function(ret_val, self, other, object_index, event_type, event_number)
         local need_to_interrupt = false
         for i = 1, #pre_callbacks do
             need_to_interrupt = need_to_interrupt or
-                                    pre_callbacks[i].fn(ret_val, target, result, object_index, event_type, event_number) ==
+                                    pre_callbacks[i].fn(ret_val, self, other, object_index, event_type, event_number) ==
                                     false
         end
         return not need_to_interrupt
-    end, function(ret_val, target, result, object_index, event_type, event_number)
+    end, function(ret_val, self, other, object_index, event_type, event_number)
         for i = 1, #post_callbacks do
-            post_callbacks[i].fn(ret_val, target, result, object_index, event_type, event_number)
+            post_callbacks[i].fn(ret_val, self, other, object_index, event_type, event_number)
         end
     end)
 HookSystem.register_special_hook("pre_Perform_Event_Object", pre_callbacks)

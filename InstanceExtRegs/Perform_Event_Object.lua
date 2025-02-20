@@ -21,12 +21,13 @@ local callbacks = InstanceExtManager.callbacks
 local pre_event_type_map = {
     [3] = "pre_step",
     [8] = "pre_draw",
-    [1] = "pre_destroy"
+    [1] = "pre_destroy",
+    [4] = "pre_collision"
 }
 for _, name in pairs(pre_event_type_map) do
     InstanceExtManager.enable_callback(name)
 end
-HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, target, result, object_index, event_type, event_number)
+HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, self, other, object_index, event_type, event_number)
     local event_type = event_type:get()
     local callback_name = pre_event_type_map[event_type]
 
@@ -34,7 +35,7 @@ HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, targe
         return
     end
 
-    local instance_callbacks = callbacks[target.id]
+    local instance_callbacks = callbacks[self.id]
     if not instance_callbacks then
         return
     end
@@ -45,7 +46,7 @@ HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, targe
     end
     local need_to_interrupt = false
     for _, fn in pairs(callbacks_) do
-        local flag = fn(target, event_number:get())
+        local flag = fn(self, event_number:get(), other)
         if flag == -1 then
             return
         end
@@ -58,17 +59,18 @@ end)
 local post_event_type_map = {
     [3] = "post_step",
     [8] = "post_draw",
-    [0] = "post_create"
+    [0] = "post_create",
+    [4] = "post_collision"
 }
 for _, name in pairs(post_event_type_map) do
     InstanceExtManager.enable_callback(name)
 end
-HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, target, result, object_index, event_type, event_number)
+HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, self, other, object_index, event_type, event_number)
     local event_type = event_type:get()
 
     -- destroy instance callbacks ---
     if event_type == 1 then
-        callbacks[target.id] = nil
+        callbacks[self.id] = nil
         return
     end
 
@@ -78,7 +80,7 @@ HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, targ
         return
     end
 
-    local instance_callbacks = callbacks[target.id]
+    local instance_callbacks = callbacks[self.id]
     if not instance_callbacks then
         return
     end
@@ -88,7 +90,7 @@ HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, targ
         return
     end
     for _, fn in pairs(callbacks_) do
-        if fn(target, event_number:get()) == -1 then
+        if fn(self, event_number:get(), other) == -1 then
             return
         end
     end

@@ -15,7 +15,6 @@ end)
 mods["MGReturns-ENVY"].auto()
 envy = mods["MGReturns-ENVY"]
 
-require("attack_flags_fix")
 require("Dynamic")
 require("HookSystem")
 require("InstanceExtManager")
