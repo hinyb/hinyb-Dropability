@@ -21,7 +21,6 @@ local callbacks = InstanceExtManager.callbacks
 local pre_event_type_map = {
     [3] = "pre_step",
     [8] = "pre_draw",
-    [1] = "pre_destroy",
     [4] = "pre_collision"
 }
 for _, name in pairs(pre_event_type_map) do
@@ -65,11 +64,6 @@ for _, name in pairs(post_event_type_map) do
 end
 HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, self, other, object_index, event_type, event_number)
     -- destroy instance callbacks ---
-    if event_type == 1 then
-        callbacks[self.id] = nil
-        return
-    end
-
     local callback_name = post_event_type_map[event_type]
 
     if not callback_name then
