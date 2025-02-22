@@ -28,7 +28,6 @@ for _, name in pairs(pre_event_type_map) do
     InstanceExtManager.enable_callback(name)
 end
 HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, self, other, object_index, event_type, event_number)
-    local event_type = event_type:get()
     local callback_name = pre_event_type_map[event_type]
 
     if not callback_name then
@@ -46,7 +45,7 @@ HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, self,
     end
     local need_to_interrupt = false
     for _, fn in pairs(callbacks_) do
-        local flag = fn(self, event_number:get(), other)
+        local flag = fn(self, event_number, other)
         if flag == -1 then
             return
         end
@@ -59,15 +58,12 @@ end)
 local post_event_type_map = {
     [3] = "post_step",
     [8] = "post_draw",
-    [0] = "post_create",
     [4] = "post_collision"
 }
 for _, name in pairs(post_event_type_map) do
     InstanceExtManager.enable_callback(name)
 end
 HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, self, other, object_index, event_type, event_number)
-    local event_type = event_type:get()
-
     -- destroy instance callbacks ---
     if event_type == 1 then
         callbacks[self.id] = nil
@@ -90,7 +86,7 @@ HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, self
         return
     end
     for _, fn in pairs(callbacks_) do
-        if fn(self, event_number:get(), other) == -1 then
+        if fn(self, event_number, other) == -1 then
             return
         end
     end

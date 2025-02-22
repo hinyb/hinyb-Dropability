@@ -139,7 +139,7 @@ function InstanceExtManager.add_skill_bullet_captrue_local(actor, slot_index, na
         if black_list[inst.object_index] then
             return
         end
-        if string.sub(inst.object_name, 1, 3) == "oEf" then
+        if string.sub(inst.object_name, 1, 3) == "oEf" and inst.object_index ~= gm.constants.oEfAcidBubble then
             return
         end
         if not inst.parent then
@@ -241,26 +241,6 @@ function InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(actor, slo
 end
 
 HookSystem.clean_hook()
--- I think multiplayer_buffer is a buffer_grow
--- gml_Script_init_multiplayer_globals
---[[
-1 buffer_u8
-2 buffer_i8
-3 buffer_u16
-4 buffer_i16
-5 buffer_u32
-6 buffer_i32
-7 buffer_f16
-8 buffer_f32
-9 buffer_f64
-
-11 buffer_string
-
-
-
-]]
--- seems like gamemaker don't have a buffer_u64
--- but I think readuint_packed is for this
 HookSystem.post_script_hook(gm.constants.write_attackinfo, function(self, other, result, args)
     local attack_info = args[1].value
     local bit_array = 0

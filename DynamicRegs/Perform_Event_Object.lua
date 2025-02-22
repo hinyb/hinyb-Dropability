@@ -15,11 +15,14 @@
 
 -- ev_cleanup 12
 ]] --
+local cache_event_type
 local pre_callbacks = {}
 local post_callbacks = {}
 -- object_index controls which object's events are executed.
 memory.dynamic_hook("event_perform_internal", "int64_t", {"CInstance*", "CInstance*", "int", "int", "int"},
     Dynamic.Perform_Event_Object_ptr, function(ret_val, self, other, object_index, event_type, event_number)
+        local event_type = event_type:get()
+        cache_event_type = event_type
         local need_to_interrupt = false
         for i = 1, #pre_callbacks do
             need_to_interrupt = need_to_interrupt or
@@ -29,7 +32,7 @@ memory.dynamic_hook("event_perform_internal", "int64_t", {"CInstance*", "CInstan
         return not need_to_interrupt
     end, function(ret_val, self, other, object_index, event_type, event_number)
         for i = 1, #post_callbacks do
-            post_callbacks[i].fn(ret_val, self, other, object_index, event_type, event_number)
+            post_callbacks[i].fn(ret_val, self, other, object_index, cache_event_type, event_number)
         end
     end)
 HookSystem.register_special_hook("pre_Perform_Event_Object", pre_callbacks)

@@ -4,7 +4,7 @@ function InstanceExtManager.add_on_anim_end(instance, name, fn)
     if not InstanceExtManager.callback_exists(instance, "post_step", name) then
         local flag
         InstanceExtManager.add_callback(instance, "post_step", name, function(instance, event_number)
-            if event_number ~= 2 then
+            if event_number:get() ~= 2 then
                 return
             end
             if flag == nil then

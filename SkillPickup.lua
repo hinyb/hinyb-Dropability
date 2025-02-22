@@ -126,7 +126,6 @@ local post_create_funcs = {}
 SkillPickup.add_post_create_func = function(fn)
     post_create_funcs[#post_create_funcs + 1] = fn
 end
-SkillPickup.skillPickup_object_index = 0
 local function init_skillPickup(target, skill_params, x, y)
     local default_skill = Class.SKILL:get(skill_params.skill_id)
     target.sprite_index = default_skill:get(4)
@@ -153,14 +152,14 @@ local function init()
         SkillPickup.set_skill(actor, inst)
         inst.activator = actor
     end
-    local skillPickup = Object.new("hinyb", "skillPickup", Object.PARENT.interactable)
-    SkillPickup.skillPickup_object_index = skillPickup.value
-    skillPickup.obj_sprite = 114
-    skillPickup.obj_depth = 5.0
+    local oSkillPickup = Object.new("hinyb", "oSkillPickup", Object.PARENT.interactable)
+    gm.constants.oSkillPickup = oSkillPickup.value
+    oSkillPickup.obj_sprite = 114
+    oSkillPickup.obj_depth = 5.0
     local pickup_skill_message_create
     HookSystem.pre_script_hook(gm.constants.interactable_set_active, function(self, other, result, args)
         local inst = args[1].value
-        if inst.__object_index == skillPickup.value then
+        if inst.__object_index == oSkillPickup.value then
             local actor = args[2].value
             setup_skill(inst, actor)
             if Net.is_host() then
@@ -190,7 +189,7 @@ local function init()
     end
     local drop_skill_send
     local function drop_skill(x, y, skill_params)
-        local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
+        local skill = gm.instance_create(x - 20, y - 20, gm.constants.oSkillPickup)
         init_skillPickup(skill, skill_params, x - 20, y - 20)
         gm.call("gml_Script_interactable_sync", skill, skill)
         local sync_message = drop_skill_send(skill_params)
@@ -245,7 +244,7 @@ local function init()
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params, x, y)
                 end
-                local skill = gm.instance_create(x - 20, y - 20, skillPickup.value)
+                local skill = gm.instance_create(x - 20, y - 20, gm.constants.oSkillPickup)
                 init_skillPickup(skill, skill_params, x - 20, y - 20)
             end
         elseif Net.is_host() then

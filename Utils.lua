@@ -170,6 +170,14 @@ Utils.point_distance = function (x1,y1,x2,y2)
     local dy = y1-y2
     return math.sqrt(dx * dx + dy * dy)
 end
+Utils.remove_value = function (t, v)
+    for i = 1, #t do
+        if t[i] == v then
+            table.remove(t, i)
+            return
+        end
+    end
+end
 Utils.simple_string_to_table = function(string)
     if type(string) ~= "string" then
         log.error("param must be string", 2)

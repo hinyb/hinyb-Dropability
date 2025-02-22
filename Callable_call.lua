@@ -66,9 +66,11 @@ end
 
 HookSystem.pre_script_hook(gm.constants.callable_call, function(self, other, result, args)
     local script = args[1].value
-    if script and type(script.callable_value) ~= "number" then
-        if pre_callbacks[script.callable_value.script_name] then
-            for _, fn in pairs(pre_callbacks[script.callable_value.script_name]) do
+    local callable_value = script.callable_value
+    if script and type(callable_value) ~= "number" then
+        local pre_callbacks = pre_callbacks[callable_value.script_name]
+        if pre_callbacks then
+            for _, fn in pairs(pre_callbacks) do
                 fn(self, other, result, args)
             end
         end
@@ -77,9 +79,11 @@ end)
 
 HookSystem.post_script_hook(gm.constants.callable_call, function(self, other, result, args)
     local script = args[1].value
-    if script and type(script.callable_value) ~= "number" then
-        if post_callbacks[script.callable_value.script_name] then
-            for _, fn in pairs(post_callbacks[script.callable_value.script_name]) do
+    local callable_value = script.callable_value
+    if script and type(callable_value) ~= "number" then
+        local post_callbacks = post_callbacks[callable_value.script_name]
+        if post_callbacks then
+            for _, fn in pairs(post_callbacks) do
                 fn(self, other, result, args)
             end
         end
