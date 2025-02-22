@@ -16,11 +16,13 @@ HookSystem.clean_hook()
 -- ev_cleanup 12
 ]] --
 
+-- Maybe it should rename to event
 --- pre part ---
 local callbacks = InstanceExtManager.callbacks
 local pre_event_type_map = {
     [3] = "pre_step",
     [8] = "pre_draw",
+    [1] = "pre_destroy",
     [4] = "pre_collision"
 }
 for _, name in pairs(pre_event_type_map) do
