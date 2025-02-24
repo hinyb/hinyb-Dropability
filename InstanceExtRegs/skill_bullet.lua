@@ -88,7 +88,7 @@ function InstanceExtManager.add_skill_instance_captrue_internal(actor, slot_inde
             end)
         end
     end)
-    InstanceExtManager.add_callback(actor, "pre_destroy", name, function(actor)
+    InstanceExtManager.add_callback(actor, "post_instance_destroy", name, function(actor)
         skill_captrue_callbacks[actor.id] = nil
     end)
 end
@@ -190,7 +190,7 @@ function InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, c
     InstanceExtManager.add_skill_bullet_captrue_local(actor, slot_index, name .. callback_id, function(attack)
         attack_info_add_callback(attack.attack_info, callback_id, attack_info_name)
     end)
-    InstanceExtManager.add_callback(actor, "pre_destroy", name, function(attack)
+    InstanceExtManager.add_callback(actor, "post_instance_destroy", name, function(attack)
         attack_info_callbacks[attack_info_name] = nil
     end)
     if attack_info_callbacks[attack_info_name] == nil then

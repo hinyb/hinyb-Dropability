@@ -124,6 +124,26 @@ local script_parse_rules = {
         value = {"self"}
     }}
 }
+--[[
+damage_inflict
+0 target 0
+1 damage 0
+2 some_flags 0
+-- 1<<0 ignore_armor
+-- 1<<1 non-faltal
+-- 1<<2 break_shield
+-- 1<<3 ignore_invincibility
+3 kill_parent -4
+4 x 0
+5 y 0
+6 damage_true damage
+7 draw_damage_networked arg6  0
+8 damage_color 0xffffff
+9 critical 0
+10 attack_info_x x
+11 attack_info_y y
+12 sparks_sprite -1
+]]
 HookSystem.clean_hook()
 function InstanceExtRegs.register_script_callback(script_index, callback_name, is_pre, t)
     local hook_fn = is_pre and HookSystem.pre_script_hook or HookSystem.post_script_hook

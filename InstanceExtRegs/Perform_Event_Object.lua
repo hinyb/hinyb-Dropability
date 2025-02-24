@@ -45,8 +45,15 @@ HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, self,
         return
     end
     local need_to_interrupt = false
-    for _, fn in pairs(callbacks_) do
-        local flag = fn(self, event_number, other)
+    -- to delete elements during iteration, I have to do this.
+    local key, func = next(callbacks_)
+    while key do
+        local current_key = key
+        local flag, need_delete = func(self, event_number, other)
+        key, func = next(callbacks_, current_key)
+        if need_delete then
+            callbacks_[current_key] = nil
+        end
         if flag == -1 then
             return
         end
@@ -81,8 +88,15 @@ HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, self
     if not callbacks_ then
         return
     end
-    for _, fn in pairs(callbacks_) do
-        if fn(self, event_number, other) == -1 then
+    local key, func = next(callbacks_)
+    while key do
+        local current_key = key
+        local flag, need_delete = func(self, event_number, other)
+        key, func = next(callbacks_, current_key)
+        if need_delete then
+            callbacks_[current_key] = nil
+        end
+        if flag == -1 then
             return
         end
     end

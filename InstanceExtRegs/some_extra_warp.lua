@@ -16,11 +16,11 @@ function InstanceExtManager.add_on_anim_end(instance, name, fn)
                 local image_number = instance.image_number
                 if math.abs(image_index - image_number + 1) <= 0.0001 or image_index >= image_number - 1 then
                     fn(instance)
-                    InstanceExtManager.remove_callback(instance, "post_step", name)
+                    return true, true
                 end
             elseif instance.state_strafe_half ~= flag then
                 fn(instance)
-                InstanceExtManager.remove_callback(instance, "post_step", name)
+                return true, true
             end
         end)
     end
