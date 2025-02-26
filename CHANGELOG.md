@@ -1,3 +1,7 @@
+v3.2.1
+* Some small changes.
+* Improve network.
+
 v3.2.0
 * Refactor Instance_ext
 * fix Running backwards with Robomando creates a missing texture.
