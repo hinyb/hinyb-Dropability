@@ -12,8 +12,14 @@
 -- ev_key_press 9
 -- ev_key_release 10
 -- ev_pre_create 14
-
 -- ev_cleanup 12
+
+-- can get from
+https://github.com/nkrapivin/modshovel/blob/master/LibModShovel/LibModShovel_GMConstants.cpp
+
+maybe use 
+https://github.com/nkrapivin/modshovel/blob/14f6c791d295d11146cb79cc2844206c9640e419/LibModShovel/LibModShovel_Lua.cpp#L2090
+is better
 ]] --
 local cache_event_type
 local pre_callbacks = {}
