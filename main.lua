@@ -40,6 +40,7 @@ public_things = {
     ["Callback_ext"] = Callback_ext,
     ["Callable_call"] = Callable_call,
     ["CompatibilityPatch"] = CompatibilityPatch,
+    ["HookFlags"] = HookFlags,
     ["HookSystem"] = HookSystem,
     ["InstanceExtManager"] = InstanceExtManager
 
@@ -54,32 +55,40 @@ HookSystem.post_script_hook(gm.constants.ui_hover_tooltip, function(self, other,
 end)
 
 HookSystem.post_script_hook(gm.constants.hud_draw_skill_info, function(self, other, result, args)
-    if ImGui.IsKeyPressed(params['drop_key'], false) then
-        local skill = gm.array_get(args[1].value.skills, args[2].value).active_skill
-        if skill.skill_id ~= 0 then
-            SkillPickup.drop_skill(args[1].value, skill)
-        end
+    if not ImGui.IsKeyPressed(params['drop_key'], false) then
+        return
     end
+    local player = args[1].value
+    local slot_index = args[2].value
+    local skill = player:actor_get_skill_active(slot_index)
+    if skill.skill_id ~= 0 then
+        SkillPickup.drop_skill(player, skill)
+    end
+
 end)
 -- gml_Object_oHUDTabMenu_Draw_73 can get item_id directly, but draw_items can't
 -- So I decided to retain this code.
 gui.add_always_draw_imgui(function()
-    if ImGui.IsKeyPressed(params['drop_key'], false) then
-        local player = Player.get_client().value
-        if Instance.exists(player) then
-            if gm.variable_global_get("_ui_hover_tooltip_state") ~= nil then
-                if tooltip ~= nil then
-                    local item_object_id, item_id = Utils.find_item_with_localized(tooltip, player)
-                    if item_object_id ~= nil and item_id ~= nil then
-                        drop_item(player, item_id, item_object_id)
-                    end
-                end
-            end
-        end
+    if not ImGui.IsKeyPressed(params['drop_key'], false) then
+        return
+    end
+    local player = Player.get_client().value
+    if not Instance.exists(player) then
+        return
+    end
+    if gm.variable_global_get("_ui_hover_tooltip_state") == nil then
+        return
+    end
+    if tooltip == nil then
+        return
+    end
+    local item_object_id, item_id = Utils.find_item_with_localized(tooltip, player)
+    if item_object_id ~= nil and item_id ~= nil then
+        drop_item(player, item_id, item_object_id)
     end
 end)
 gui.add_to_menu_bar(function()
-    local isChanged, keybind_value = ImGui.Hotkey("Drop Item Key", params['drop_key'])
+    local isChanged, keybind_value = ImGui.Hotkey("Drop Key", params['drop_key'])
     if isChanged then
         params['drop_key'] = keybind_value
         Toml.save_cfg(_ENV["!guid"], params)

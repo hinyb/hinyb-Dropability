@@ -1,3 +1,4 @@
+require("HookFlags")
 HookSystem = {}
 local enable_pre_script_hooks = {}
 local enable_post_script_hooks = {}

@@ -1,27 +1,26 @@
 --- actually post_step with some checks.
 function InstanceExtManager.add_on_anim_end(instance, name, fn)
     name = name .. "on_anim_end"
-    if not InstanceExtManager.callback_exists(instance, "post_step", name) then
+    if not InstanceExtManager.callback_exists(instance, "pre_step", name) then
         local flag
-        InstanceExtManager.add_callback(instance, "post_step", name, function(instance, event_number)
+        InstanceExtManager.add_callback(instance, "pre_step", name, function(instance, event_number)
             if event_number:get() ~= 2 then
                 return
             end
             if flag == nil then
-                flag = instance.state_strafe_half
+                flag = gm.bool(instance.state_strafe_half)
                 return
             end
-            if flag ~= 1.0 then
+            if flag == false then
                 local image_index = instance.image_index
                 local image_number = instance.image_number
-                if math.abs(image_index - image_number + 1) <= 0.0001 or image_index >= image_number - 1 then
-                    fn(instance)
-                    return true, true
+                if not (math.abs(image_index - image_number + 1) <= 0.0001 or image_index >= image_number - 1) then
+                    return
                 end
-            elseif instance.state_strafe_half ~= flag then
-                fn(instance)
-                return true, true
+            elseif gm.bool(instance.state_strafe_half) == flag then
+                return
             end
+            return (fn(instance) or HookFlags.fNone) | HookFlags.fDelete
         end)
     end
 end

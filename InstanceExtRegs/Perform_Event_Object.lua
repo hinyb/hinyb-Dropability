@@ -28,39 +28,43 @@ local pre_event_type_map = {
 for _, name in pairs(pre_event_type_map) do
     InstanceExtManager.enable_callback(name)
 end
-HookSystem.add_special_hook("pre_Perform_Event_Object", function (ret_val, self, other, object_index, event_type, event_number)
-    local callback_name = pre_event_type_map[event_type]
+HookSystem.add_special_hook("pre_Perform_Event_Object",
+    function(ret_val, self, other, object_index, event_type, event_number)
+        local callback_name = pre_event_type_map[event_type]
 
-    if not callback_name then
-        return
-    end
-
-    local instance_callbacks = callbacks[self.id]
-    if not instance_callbacks then
-        return
-    end
-
-    local callbacks_ = instance_callbacks[callback_name]
-    if not callbacks_ then
-        return
-    end
-    local need_to_interrupt = false
-    -- to delete elements during iteration, I have to do this.
-    local key, func = next(callbacks_)
-    while key do
-        local current_key = key
-        local flag, need_delete = func(self, event_number, other)
-        key, func = next(callbacks_, current_key)
-        if need_delete then
-            callbacks_[current_key] = nil
-        end
-        if flag == -1 then
+        if not callback_name then
             return
         end
-        need_to_interrupt = need_to_interrupt or flag == false
-    end
-    return not need_to_interrupt
-end)
+
+        local instance_callbacks = callbacks[self.id]
+        if not instance_callbacks then
+            return
+        end
+
+        local callbacks_ = instance_callbacks[callback_name]
+        if not callbacks_ then
+            return
+        end
+        local need_to_interrupt = false
+        -- to delete elements during iteration, I have to do this.
+        local key, func = next(callbacks_)
+        while key do
+            local current_key = key
+            local flags = func(self, event_number, other)
+            key, func = next(callbacks_, current_key)
+            if flags then
+                if flags & 1 ~= 0 then
+                    callbacks_[current_key] = nil
+                    log.info(flags, current_key, gm.variable_global_get("_current_frame"))
+                end
+                if flags & 4 ~= 0 then
+                    return
+                end
+                need_to_interrupt = need_to_interrupt or flags & 2 ~= 0
+            end
+        end
+        return not need_to_interrupt
+    end)
 
 -- post part ---
 local post_event_type_map = {
@@ -71,33 +75,36 @@ local post_event_type_map = {
 for _, name in pairs(post_event_type_map) do
     InstanceExtManager.enable_callback(name)
 end
-HookSystem.add_special_hook("post_Perform_Event_Object", function (ret_val, self, other, object_index, event_type, event_number)
-    -- destroy instance callbacks ---
-    local callback_name = post_event_type_map[event_type]
+HookSystem.add_special_hook("post_Perform_Event_Object",
+    function(ret_val, self, other, object_index, event_type, event_number)
+        -- destroy instance callbacks ---
+        local callback_name = post_event_type_map[event_type]
 
-    if not callback_name then
-        return
-    end
-
-    local instance_callbacks = callbacks[self.id]
-    if not instance_callbacks then
-        return
-    end
-
-    local callbacks_ = instance_callbacks[callback_name]
-    if not callbacks_ then
-        return
-    end
-    local key, func = next(callbacks_)
-    while key do
-        local current_key = key
-        local flag, need_delete = func(self, event_number, other)
-        key, func = next(callbacks_, current_key)
-        if need_delete then
-            callbacks_[current_key] = nil
-        end
-        if flag == -1 then
+        if not callback_name then
             return
         end
-    end
-end)
+
+        local instance_callbacks = callbacks[self.id]
+        if not instance_callbacks then
+            return
+        end
+
+        local callbacks_ = instance_callbacks[callback_name]
+        if not callbacks_ then
+            return
+        end
+        local key, func = next(callbacks_)
+        while key do
+            local current_key = key
+            local flags = func(self, event_number, other)
+            key, func = next(callbacks_, current_key)
+            if flags then
+                if flags & 1 ~= 0 then
+                    callbacks_[current_key] = nil
+                end
+                if flags & 4 ~= 0 then
+                    return
+                end
+            end
+        end
+    end)
