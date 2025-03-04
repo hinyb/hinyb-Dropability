@@ -12,9 +12,6 @@ function Callback_ext.add_post_callback(callback_id, name, fn)
     if post_callbacks[callback_id] == nil then
         post_callbacks[callback_id] = {}
     end
-    if post_callbacks[callback_id][name] then
-        log.warning("try to override", callback_id, name)
-    end
     post_callbacks[callback_id][name] = fn
 end
 function Callback_ext.remove_pre_callback(callback_id, name)

@@ -79,9 +79,25 @@ function InstanceExtManager.add_skill_instance_captrue_internal(actor, slot_inde
                 return args[2].value == actor
             end
             local name = name .. Utils.to_string_with_floor(actor.id)
+            -- For HuntressC2, which uses two states: HuntressC2Draw and HuntressC2Fire.
+            InstanceExtManager.add_callback(actor, "pre_actor_set_state", "pre_actor_set_state_for_skill_bullet",
+                function(actor, state_id)
+                    local state_array = Class.Actor_State:get(state_id)
+                    if not state_array then
+                        return
+                    end
+                    Callback_ext.add_capture_instance(state_array:get(2), name, deal_func, check_func)
+                    Callback_ext.add_capture_instance(state_array:get(4), name, deal_func, check_func)
+                    Callback_ext.add_capture_instance(state_array:get(3), name, deal_func, check_func, nil, function()
+                        Callback_ext.remove_capture_instance(state_array:get(2), name)
+                        Callback_ext.remove_capture_instance(state_array:get(4), name)
+                        Callback_ext.remove_capture_instance(state_array:get(3), name)
+                    end)
+                end)
             Callback_ext.add_capture_instance(state_array:get(2), name, deal_func, check_func)
             Callback_ext.add_capture_instance(state_array:get(4), name, deal_func, check_func)
             Callback_ext.add_capture_instance(state_array:get(3), name, deal_func, check_func, nil, function()
+                InstanceExtManager.remove_callback(actor, "pre_actor_set_state", "pre_actor_set_state_for_skill_bullet")
                 Callback_ext.remove_capture_instance(state_array:get(2), name)
                 Callback_ext.remove_capture_instance(state_array:get(4), name)
                 Callback_ext.remove_capture_instance(state_array:get(3), name)
@@ -220,24 +236,25 @@ end
 -- This runs on both the client and server, but when the server's damager_attack_process changes, the client will be synced.
 -- This should only call on local.
 function InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(actor, slot_index, name, deal_func)
-    InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, "attack", function(attack_info, hit_list, max_index)
-        for i = 0, max_index - 1, 3 do
-            local hit_target = gm.ds_list_find_value(hit_list, i)
-            if type(hit_target) ~= "number" then
-                if Instance.exists(hit_target) then
-                    if hit_target:hit_should_count_towards_total_hit_number_client_and_server() then
-                        if gm.call("gml_Script_object_is", hit_target, hit_target, hit_target, 344) then
-                            if hit_target:attack_collision_resolve() ~= -4 then
+    InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, "attack",
+        function(attack_info, hit_list, max_index)
+            for i = 0, max_index - 1, 3 do
+                local hit_target = gm.ds_list_find_value(hit_list, i)
+                if type(hit_target) ~= "number" then
+                    if Instance.exists(hit_target) then
+                        if hit_target:hit_should_count_towards_total_hit_number_client_and_server() then
+                            if gm.call("gml_Script_object_is", hit_target, hit_target, hit_target, 344) then
+                                if hit_target:attack_collision_resolve() ~= -4 then
+                                    deal_func(attack_info, hit_target)
+                                end
+                            else
                                 deal_func(attack_info, hit_target)
                             end
-                        else
-                            deal_func(attack_info, hit_target)
                         end
                     end
                 end
             end
-        end
-    end)
+        end)
 end
 
 HookSystem.clean_hook()

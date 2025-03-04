@@ -175,6 +175,7 @@ HookSystem.post_script_hook(100561, function(self, other, result, args)
                     actor:draw_hp_bar_ally()
                 end)
             end
+            mob_warrped.is_character_enemy_targettable = 1.0
         end
         mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
     end

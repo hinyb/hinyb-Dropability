@@ -6,9 +6,6 @@ function Callable_call.add_pre_callback(callback_name, name, fn)
     if pre_callbacks[callback_name] == nil then
         pre_callbacks[callback_name] = {}
     end
-    if pre_callbacks[callback_name][name] then
-        log.warning("try to override", callback_name, name)
-    end
     pre_callbacks[callback_name][name] = fn
 end
 function Callable_call.add_post_callback(callback_name, name, fn)

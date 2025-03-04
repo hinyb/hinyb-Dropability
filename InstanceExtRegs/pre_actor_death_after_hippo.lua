@@ -1,26 +1,24 @@
 HookSystem.clean_hook()
 local callbacks = InstanceExtManager.callbacks
-InstanceExtManager.enable_callback("pre_actor_death_after_hippo")
-HookSystem.pre_script_hook(gm.constants.actor_death, function(self, other, result, args)
-    if gm.array_get(self.inventory_item_stack, 76) == 0 then -- temporary solution.
-        local id = self.id
+InstanceExtManager.enable_callback("on_actor_death_after_hippo")
+local hippt_ptr = gm.get_script_function_address(gm.constants.actor_death):add(3159)
+memory.dynamic_hook_mid("on_actor_death_after_hippo", {"[rbp+1F70h+10h]"}, {"CInstance*"}, 0,
+    gm.get_script_function_address(gm.constants.actor_death):add(3249), function(args)
+        local id = args[1].id
         local inst_callbacks = callbacks[id]
         if not inst_callbacks then
             return
         end
-        local pre_actor_death_after_hippo_callbacks = inst_callbacks.pre_actor_death_after_hippo
-        if not pre_actor_death_after_hippo_callbacks then
+        local on_actor_death_after_hippo_callbacks = inst_callbacks.on_actor_death_after_hippo
+        if not on_actor_death_after_hippo_callbacks then
             return
         end
         local need_to_interrupt = false
-        for _, callback in pairs(pre_actor_death_after_hippo_callbacks) do
-            --- actor ---
-            local flag, result_ = callback(self)
+        for _, callback in pairs(on_actor_death_after_hippo_callbacks) do
+            local flag = callback(args[1])
             need_to_interrupt = need_to_interrupt or flag == false
-            if result_ then
-                result.value = result_
-            end
         end
-        return not need_to_interrupt
-    end
-end)
+        if need_to_interrupt then
+            return hippt_ptr
+        end
+    end)

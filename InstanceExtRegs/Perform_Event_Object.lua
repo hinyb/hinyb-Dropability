@@ -55,12 +55,11 @@ HookSystem.add_special_hook("pre_Perform_Event_Object",
             if flags then
                 if flags & 1 ~= 0 then
                     callbacks_[current_key] = nil
-                    log.info(flags, current_key, gm.variable_global_get("_current_frame"))
-                end
-                if flags & 4 ~= 0 then
-                    return
                 end
                 need_to_interrupt = need_to_interrupt or flags & 2 ~= 0
+                if flags & 4 ~= 0 then
+                    return not need_to_interrupt
+                end
             end
         end
         return not need_to_interrupt

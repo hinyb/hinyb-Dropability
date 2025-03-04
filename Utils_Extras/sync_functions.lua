@@ -11,4 +11,7 @@ Initialize(function()
     Utils.instance_create_sync = Utils.create_sync_func([[
         return gm.instance_create(a1,a2,a3)
     ]], {Utils.param_type.double, Utils.param_type.double, Utils.param_type.ushort})
+    Utils.actor_skill_set_sync = Utils.create_sync_func([[
+        return gm.actor_skill_set(a1,a2,a3)
+    ]], {Utils.param_type.instance, Utils.param_type.byte, Utils.param_type.ushort})
 end)

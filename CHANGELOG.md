@@ -1,3 +1,7 @@
+v3.2.2
+* Some small changes.
+* Improve pre_actor_death_after_hippo.
+
 v3.2.1
 * Some small changes.
 * Improve network.

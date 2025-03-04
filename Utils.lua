@@ -103,7 +103,14 @@ Utils.log_information = function(info, offset)
     for i = 1, offset do
         prefix = "      " .. prefix
     end
-    log.info(prefix, info)
+    local str = info
+    if type(info) == "userdata" then
+        local mt = getmetatable(info)
+        if mt.__name == "sol.CScriptRef*" then
+            str = info.script_name
+        end
+    end
+    log.info(prefix, str)
     if type(info) == "table" then
         for k, v in pairs(info) do
             log.info(prefix, k)
