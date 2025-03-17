@@ -27,8 +27,7 @@ function Utils.get_data_type(data)
     log.error("Can't get this data's type", data)
 end
 function Utils.message_write_table(message, table)
-    local size = #table
-    message:write_byte(size)
+    message:write_byte(Utils.table_get_length(table))
     for key, value in pairs(table) do
         local type = Utils.get_data_type(value)
         message:write_byte(type)

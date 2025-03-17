@@ -1,3 +1,6 @@
+* 3.2.3
+* Fix a sync bug.
+
 v3.2.2
 * Some small changes.
 * Improve pre_actor_death_after_hippo.
