@@ -17,4 +17,7 @@ Initialize(function()
     Utils.actor_set_kill_cause_sync = Utils.create_sync_func([[
         gm.actor_set_kill_cause(a1, a2, a3)
     ]], {Utils.param_type.instance, Utils.param_type.double, Utils.param_type.string})
+    Utils.teleport_nearby_sync = Utils.create_sync_func([[
+        gm.teleport_nearby(a1, a2, a3)
+    ]], {Utils.param_type.instance, Utils.param_type.double, Utils.param_type.double})
 end)
