@@ -117,37 +117,67 @@ local function initialize_array(target, member, num)
         end
     end
 end
-CompatibilityPatch.set_compat = function(self)
-    initialize_number(self, "charged")
-    initialize_number(self, "_miner_charged_elder_kill_count")
-    initialize_number(self, "sniper_bonus")
-    initialize_number(self, "dash_timer")
-    initialize_number(self, "ydisp")
-    initialize_number(self, "dive")
-    initialize_number(self, "_hand_sawmerang_kill_count")
-    initialize_number(self, "dash_again")
-    initialize_number(self, "above_50_health", true)
-    initialize_number(self, "above_60_health", true)
-    initialize_number(self, "spd")
-    initialize_array(self, "sprite_idle", 3)
-    initialize_array(self, "sprite_fall", 3)
-    initialize_array(self, "sprite_jump_peak", 3)
-    initialize_array(self, "sprite_jump", 3)
-    initialize_array(self, "sprite_walk", 4)
-    self.spat = -4 -- SpitterZ
-    self.totem_spawn_id = gm.array_create(0, 0) -- monsterShamGX
-    ---- for monster ----
-    initialize_number(self, "input_player_index")
-    initialize_number(self, "bunker")
-    initialize_number(self, "aiming")
-    initialize_number(self, "is_local", not Net.is_client())
-    initialize_number(self, "pause")
-    initialize_number(self, "menu_typing")
-    initialize_number(self, "class")
-    initialize_number(self, "sprite_palette")
-    initialize_number(self, "skin_current")
-    ---- for drone ----
+CompatibilityPatch.set_compat = function(actor)
+    InstanceExtManager.add_callback(actor, "pre_skill_activate", "need_target_skill_fix", function(actor, slot_index)
+        if actor.object_index ~= gm.constants.oP then
+            return
+        end
+        local skill = actor:actor_get_skill_active(slot_index)
+        if not Utils.is_skill_need_target(skill.skill_id) then
+            return
+        end
+        local target = gm.find_target_nearest(actor.x, actor.y, actor.team)
+        if actor:distance_to_object(target) <= 400 then -- copy from gml_Script_alarm_ai_default_do_targetting
+            actor.target = target
+            return
+        end
+        actor.target = -4
+        return false
+    end)
+    initialize_number(actor, "charged")
+    initialize_number(actor, "_miner_charged_elder_kill_count")
+    initialize_number(actor, "sniper_bonus")
+    initialize_number(actor, "dash_timer")
+    initialize_number(actor, "ydisp")
+    initialize_number(actor, "dive")
+    initialize_number(actor, "_hand_sawmerang_kill_count")
+    initialize_number(actor, "dash_again")
+    initialize_number(actor, "above_50_health", true)
+    initialize_number(actor, "above_60_health", true)
+    initialize_number(actor, "spd")
+    initialize_array(actor, "sprite_idle", 3)
+    initialize_array(actor, "sprite_fall", 3)
+    initialize_array(actor, "sprite_jump_peak", 3)
+    initialize_array(actor, "sprite_jump", 3)
+    initialize_array(actor, "sprite_walk", 4)
+    initialize_number(actor, "spat", -4) -- SpitterZ
+    initialize_number(actor, "totem_spawn_id", gm.array_create(0, 0)) -- monsterShamGX
 
+    --[[
+    hp / maxhp * 2 < armor_buff and armor_buff ~= 1 and hp ~= 0
+    armor_buff -=1
+    apply_buff
+    skill_combo +=1
+    ]]
+    initialize_number(actor, "armor_buff", 2) -- for boss skills
+    initialize_number(actor, "combo", 0)
+    initialize_number(actor, "skill_count_primary", 0)
+    initialize_number(actor, "skill_count_primary_bursts", 0)
+    initialize_number(actor, "skill_count_1", 0)
+    initialize_number(actor, "skill_count_2", 0)
+    initialize_number(actor, "skill_combo", 0)
+
+    ---- for monster ----
+    initialize_number(actor, "input_player_index")
+    initialize_number(actor, "bunker")
+    initialize_number(actor, "aiming")
+    initialize_number(actor, "is_local", not Net.is_client())
+    initialize_number(actor, "pause")
+    initialize_number(actor, "menu_typing")
+    initialize_number(actor, "class")
+    initialize_number(actor, "sprite_palette")
+    initialize_number(actor, "skin_current")
+    ---- for drone ----
 end
 CompatibilityPatch.has_scrap_bar = function(actor)
     if actor.class == 14 or drifter_scarp_bar_list[actor.id] then
@@ -316,4 +346,54 @@ HookSystem.pre_script_hook(gm.constants.skill_activate, function(self, other, re
     end
 end)
 
+-- monsterBossV
+HookSystem.post_script_hook(gm.constants.instance_create, function(self, other, result, args)
+    -- have to use this, because in monsterBossV, one instance_create just doesn't have enough room for the trampoline.
+    if args[3].value == gm.constants.oBossSkill2 then
+        result.value.parent = other
+    end
+end)
+memory.dynamic_hook_mid("monsterBossV_targetting_fix", {"rsp+460h-418h", "[rbp+360h+10h]"}, {"RValue*", "CInstance*"},
+    0, gm.get_script_function_address(104065):add(4114), function(args)
+        local team = args[2].team
+        if team == 2 then
+            return
+        end
+        if team == 1 then
+            args[1].value = gm.constants.pEnemy
+            return
+        end
+        args[1].value = gm.constants.pActor
+    end)
+-- There may have some issues.
+memory.dynamic_hook_mid("monsterBossV_team_fix", {"rax", "[rbp+240h-1D0h]", "[rbp+240h+10h]"},
+    {"RValue*", "RValue*", "CInstance*"}, 0, gm.get_object_function_address("gml_Object_oBossSkill2_Step_2"):add(3066),
+    function(args)
+        local parent = args[3].parent
+        -- didn't check it.
+        if parent.object_index ~= gm.constants.oBoss2 then
+            args[2].value = 2
+            args[1].value = parent.id
+        end
+    end)
+
+
+-- monsterBossFinalX
+memory.dynamic_hook_mid("monsterBossFinalX_team_fix", {"[rbp+450h+10h]"}, {"CInstance*"}, 0,
+    gm.get_script_function_address(104088):add(9814), function(args)
+        args[1].team = args[1].parent.team
+    end)
+memory.dynamic_hook_mid("monsterBossFinalX_targetting_fix", {"[rbp+310h-220h]", "[rbp+310h+10h]"},
+    {"RValue*", "CInstance*"}, 0, gm.get_object_function_address("gml_Object_oEfBoss4SliceDoT_Alarm_1"):add(2047),
+    function(args)
+        local team = args[2].team
+        if team == 2 then
+            return
+        end
+        if team == 1 then
+            args[1].value = gm.constants.pEnemy
+            return
+        end
+        args[1].value = gm.constants.pActor
+    end)
 return CompatibilityPatch

@@ -1,4 +1,7 @@
-* 3.2.3
+v3.2.4
+* Fix skills requiring targets, including boss skills. Now they are available to use.
+
+v3.2.3
 * Fix a sync bug.
 
 v3.2.2

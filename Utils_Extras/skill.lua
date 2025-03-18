@@ -263,19 +263,10 @@ local random_skill_blacklist = {
     [16] = true, -- enforcerZ2Reload Useless skills
     [70] = true, -- sniperZReload
     [71] = true, -- Spotter Recall   
-    [178] = true, -- monsterWispBZ
-    [179] = true, -- monsterBossZ    It seems like the Bosses' skills are different from normal skills
-    [180] = true, -- monsterBossX
-    [181] = true, -- monsterBossC
-    [182] = true, -- monsterBossV
-    [183] = true, -- monsterBossFinalZ
-    [184] = true, -- monsterBossFinalX
-    [185] = true, -- can't set
+    [185] = true, -- not exist
     [188] = true, -- useless skill just walk sprite
     [196] = true, -- monsterBrambleZ It need a head, and I don't think player can have a head.
     [205] = true, -- ImpfriendRecall
-    [206] = true, -- can't set
-    [207] = true -- can't set
 }
 local skill_id_to_slot = {
     [199] = 0, -- umbraWhip
@@ -325,6 +316,27 @@ local need_scrap_bar_skill_id_list = {
 }
 Utils.is_skill_need_scrap_bar = function(skill_id)
     return need_scrap_bar_skill_id_list[skill_id] or false
+end
+local need_target_skill_list = {
+    [143] = true, -- monsterLemurianZ
+    [146] = true, -- monsterLemurianRiderLemZ
+    [155] = true, -- monsterSpitterZ
+    [160] = true, -- monsterTrokkC
+    [165] = true, -- monsterImpC
+    [172] = true, -- monsterImpGC
+    [173] = true, -- monsterImpGV
+    [178] = true, -- monsterWispBZ
+    [179] = true, -- monsterBossZ
+    [181] = true, -- monsterBossC -- it use oBFloorNoSpawn2 in teleport_nearby, I am not sure if I need to fix it.
+    [182] = true, -- monsterBossV
+    [183] = true, -- monsterBossFinalZ -- it use oBFloorNoSpawn2 in teleport_nearby too.
+    [186] = true, -- monsterMacrobeZ
+    [191] = true, -- monsterShamBZ
+    [195] = true, -- monsterTuberX
+    [198] = true  -- monsterSwiftZ
+}
+Utils.is_skill_need_target = function (skill_id)
+    return need_target_skill_list[skill_id] or false
 end
 Utils.random_skill_id = function(random_seed)
     local random = Utils.LCG_random(random_seed)
