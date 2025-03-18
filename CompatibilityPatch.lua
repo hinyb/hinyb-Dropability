@@ -348,7 +348,7 @@ end)
 
 -- monsterBossV
 HookSystem.post_script_hook(gm.constants.instance_create, function(self, other, result, args)
-    -- have to use this, because in monsterBossV, one instance_create just doesn't have enough room for the trampoline.
+    -- have to use this, because in monsterBossV, one instance_create just doesn't have enough room for the hook.
     if args[3].value == gm.constants.oBossSkill2 then
         result.value.parent = other
     end
