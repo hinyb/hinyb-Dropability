@@ -21,6 +21,7 @@ require("InstanceExtManager")
 require("Utils")
 require("SkillPickup")
 require("drop_item")
+require("drop_gold")
 require("CompatibilityPatch")
 require("Callback_ext")
 require("Callable_call")
@@ -33,6 +34,9 @@ end
 public_things = {
     ["drop_item"] = function(player, item_id, item_object_id)
         return drop_item(player, item_id, item_object_id)
+    end,
+    ["drop_gold"] = function(player, item_id, item_object_id)
+        return drop_gold(player, item_id, item_object_id)
     end,
     ["Utils"] = Utils,
     ["SkillPickup"] = SkillPickup,

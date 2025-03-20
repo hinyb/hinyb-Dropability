@@ -152,7 +152,6 @@ CompatibilityPatch.set_compat = function(actor)
     initialize_array(actor, "sprite_walk", 4)
     initialize_number(actor, "spat", -4) -- SpitterZ
     initialize_number(actor, "totem_spawn_id", gm.array_create(0, 0)) -- monsterShamGX
-
     --[[
     hp / maxhp * 2 < armor_buff and armor_buff ~= 1 and hp ~= 0
     armor_buff -=1
