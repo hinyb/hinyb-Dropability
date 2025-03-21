@@ -1,11 +1,10 @@
 # hinyb-Dropability
-* This is a small mod that adds the ability to drop items or abilities.
+* This is a small mod that adds the ability to drop items, abilities or gold.
 * If you find any bug or compatibility issues, please report it to github.
 
 ## How to use
-1. Place your mouse on the icon of the item or ability you want to drop.
-2. Press delete to drop it!
-
+1. To drop an item or ability, hover your mouse over its icon and press the Drop key (default: `Delete`).
+2. To drop gold, open the ImGui window and enter the amount you want to drop.
 ---
 
 ## How to binding 

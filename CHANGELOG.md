@@ -1,3 +1,6 @@
+v3.2.5
+* Add drop_gold.
+
 v3.2.4
 * Fix skills requiring targets, including boss skills. Now they are available to use.
 
