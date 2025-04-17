@@ -116,6 +116,7 @@ Utils.log_information = function(info, offset)
             log.info(prefix, k)
             Utils.log_information(v, offset + 1)
         end
+        return
     end
     if gm.is_struct(info) then
         local names = gm.struct_get_names(info)
@@ -125,6 +126,7 @@ Utils.log_information = function(info, offset)
                 Utils.log_information(gm.variable_struct_get(info, name), offset + 1)
             end
         end
+        return
     end
     if gm.is_array(info) then
         local size = gm.array_length(info)
@@ -133,6 +135,7 @@ Utils.log_information = function(info, offset)
             Utils.log_information("[" .. i .. "]", offset + 1)
             Utils.log_information(val, offset + 1)
         end
+        return
     end
 end
 Utils.check_table_is_array = function(table)
@@ -172,12 +175,12 @@ Utils.simple_table_to_string = function(table)
     result = result .. "}"
     return result
 end
-Utils.point_distance = function (x1,y1,x2,y2)
-    local dx = x1-x2
-    local dy = y1-y2
+Utils.point_distance = function(x1, y1, x2, y2)
+    local dx = x1 - x2
+    local dy = y1 - y2
     return math.sqrt(dx * dx + dy * dy)
 end
-Utils.remove_value = function (t, v)
+Utils.remove_value = function(t, v)
     for i = 1, #t do
         if t[i] == v then
             table.remove(t, i)
@@ -251,7 +254,7 @@ function Utils.table_deep_copy(t)
         return t
     end
     local copy = {}
-    for k,v in pairs(t) do
+    for k, v in pairs(t) do
         copy[k] = Utils.table_deep_copy(v)
     end
     return copy

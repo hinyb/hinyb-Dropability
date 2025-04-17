@@ -1,4 +1,4 @@
--- I am not sure if this hook will affect the performance.
+-- this hook will affect the performance.
 --[[
 -- ev_create 0
 -- ev_destroy 1

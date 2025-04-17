@@ -95,7 +95,7 @@ HookSystem.post_script_hook(gm.constants._survivor_drifter_create_scrap_bar, fun
             end
         end)
 end)
-memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", {"rdx", "[rbp+57h+18h]"}, {"RValue*", "CInstance*"}, 0,
+memory.dynamic_hook_mid("gml_Object_oDrifterRec_Collision_oP", { "rdx", "[rbp+57h+18h]" }, { "RValue*", "CInstance*" }, 0,
     gm.get_object_function_address("gml_Object_oDrifterRec_Collision_oP"):add(480), function(args)
         if drifter_scarp_bar_list[args[2].id] then
             args[1].value = args[2].class
@@ -150,7 +150,7 @@ CompatibilityPatch.set_compat = function(actor)
     initialize_array(actor, "sprite_jump_peak", 3)
     initialize_array(actor, "sprite_jump", 3)
     initialize_array(actor, "sprite_walk", 4)
-    initialize_number(actor, "spat", -4) -- SpitterZ
+    initialize_number(actor, "spat", -4)                              -- SpitterZ
     initialize_number(actor, "totem_spawn_id", gm.array_create(0, 0)) -- monsterShamGX
     --[[
     hp / maxhp * 2 < armor_buff and armor_buff ~= 1 and hp ~= 0
@@ -217,7 +217,7 @@ HookSystem.post_script_hook(gm.constants.set_state_gml_Object_oArtiSnap_Create_0
         gm.call("gml_Script___actor_update_target_marker", self, self)
     end
 end)
-memory.dynamic_hook_mid("tentacle_hp_color_fix", {"rdi", "r12"}, {"RValue*", "RValue*"}, 0,
+memory.dynamic_hook_mid("tentacle_hp_color_fix", { "rdi", "r12" }, { "RValue*", "RValue*" }, 0,
     gm.get_script_function_address(101568):add(1845), function(args)
         if args[1].value ~= 1.0 then
             Instance.wrap(args[2].value):add_callback("onPostStatRecalc", "tentacle_hp_color_fix", function(actor)
@@ -251,7 +251,7 @@ HookSystem.post_code_execute("gml_Object_oEngiTurret_Alarm_3", function(self, ot
 end)
 
 -- oHuntressTrirang skill
-memory.dynamic_hook_mid("huntressX2fix", {"rax", "[rbp+2C0h+18h]"}, {"RValue*", "YYObjectBase*"}, 0,
+memory.dynamic_hook_mid("huntressX2fix", { "rax", "[rbp+2C0h+18h]" }, { "RValue*", "YYObjectBase*" }, 0,
     gm.get_script_function_address(100387):add(2805), function(args)
         args[2].total_trirang = (args[2].total_trirang or 0) + 1
         args[1].value.parent_skill = args[2]
@@ -278,72 +278,75 @@ huntress_step:add(3):patch_byte(0x00):apply()
 huntress_step:add(4):patch_byte(0x00):apply()
 huntress_step:add(5):patch_byte(0x90):apply()
 
--- handX 
-local get_hand_skill_num = function(skills, slot_index)
-    local num = 0
-    for i = 0, (slot_index or gm.array_length(skills)) - 1 do
-        local skill = gm.array_get(skills, i).active_skill
-        if Utils.get_handy_drone_type(skill.skill_id) then
-            num = num + 1
-        end
-    end
-    return num
-end
-memory.dynamic_hook_mid("handX_fix_actor_death", {"rdx", "[rbp+0x1F88]"}, {"int", "CInstance*"}, 0,
-    gm.get_script_function_address(gm.constants.actor_death):add(38162), function(args)
-        local skills = args[2].skills
-        local total_num = get_hand_skill_num(skills)
-        for i = 0, gm.array_length(skills) - 1 do
-            local before_num = get_hand_skill_num(skills, i)
+-- handX
+do
+    local get_hand_skill_num = function(skills, slot_index)
+        local num = 0
+        for i = 0, (slot_index or gm.array_length(skills)) - 1 do
             local skill = gm.array_get(skills, i).active_skill
             if Utils.get_handy_drone_type(skill.skill_id) then
-                local drone = gm.instance_create(args[2].x, args[2].y, 685)
-                drone.parent = args[2].id
-                drone.team = args[2].team
-                drone.set_type(drone, args[2], Utils.get_handy_drone_type(skill.skill_id))
-                if total_num == 1 then
-                    drone.angle_offsest = 0
-                else
-                    local step = 270 / (total_num - 1)
-                    drone.angle_offsest = (before_num - (total_num - 1) / 2) * step
+                num = num + 1
+            end
+        end
+        return num
+    end
+    memory.dynamic_hook_mid("handX_fix_actor_death", { "rdx", "[rbp+0x1F88]" }, { "int", "CInstance*" }, 0,
+        gm.get_script_function_address(gm.constants.actor_death):add(38162), function(args)
+            local skills = args[2].skills
+            local total_num = get_hand_skill_num(skills)
+            for i = 0, gm.array_length(skills) - 1 do
+                local before_num = get_hand_skill_num(skills, i)
+                local skill = gm.array_get(skills, i).active_skill
+                if Utils.get_handy_drone_type(skill.skill_id) then
+                    local drone = gm.instance_create(args[2].x, args[2].y, 685)
+                    drone.parent = args[2].id
+                    drone.team = args[2].team
+                    drone.set_type(drone, args[2], Utils.get_handy_drone_type(skill.skill_id))
+                    if total_num == 1 then
+                        drone.angle_offsest = 0
+                    else
+                        local step = 270 / (total_num - 1)
+                        drone.angle_offsest = (before_num - (total_num - 1) / 2) * step
+                    end
                 end
             end
-        end
-        args[1]:set(-1) -- to override original, hope this may not break something
-    end)
-memory.dynamic_hook_mid("handX_fix_find_skill", {"rbp+410h-340h", "[rbp+410h+10h+8h]"}, {"RValue*", "CInstance*"}, 0,
-    gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(4676), function(args)
-        local actor = Utils.get_inst_safe(args[2].parent)
-        local skills = actor.skills
-        for i = 0, gm.array_length(skills) - 1 do
-            local skill = gm.array_get(skills, i).active_skill
-            local drone_type = Utils.get_handy_drone_type(skill.skill_id)
-            if drone_type and args[2].drone_type == drone_type then
-                args[1].value = skill
+            args[1]:set(-1) -- to override original, hope this may not break something
+        end)
+    memory.dynamic_hook_mid("handX_fix_find_skill", { "rbp+410h-340h", "[rbp+410h+10h+8h]" }, { "RValue*", "CInstance*" },
+        0,
+        gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(4676), function(args)
+            local actor = Utils.get_inst_safe(args[2].parent)
+            local skills = actor.skills
+            for i = 0, gm.array_length(skills) - 1 do
+                local skill = gm.array_get(skills, i).active_skill
+                local drone_type = Utils.get_handy_drone_type(skill.skill_id)
+                if drone_type and args[2].drone_type == drone_type then
+                    args[1].value = skill
+                end
             end
+        end)
+    local target = gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(1018)
+    memory.dynamic_hook_mid("handX_fix_find_drone", { "[rbp+70h+10h]" }, { "CInstance*" }, 0,
+        gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(614), function(args)
+            local actor = Utils.get_inst_safe(args[1].parent)
+            if actor.last_use_hand_drone_type ~= args[1].drone_type then
+                return target
+            end
+        end)
+    memory.dynamic_hook_mid("handX_fix_angle", { "rbp+410h-438h", "[rbp+410h+10h]" }, { "RValue*", "CInstance*" }, 0,
+        gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(6545), function(args)
+            if args[2].angle_offsest then
+                args[1].value = args[1].value + args[2].angle_offsest
+            end
+        end)
+    HookSystem.pre_script_hook(gm.constants.skill_activate, function(self, other, result, args)
+        local skill = gm.array_get(self.skills, args[1].value).active_skill
+        local drone_type = Utils.get_handy_drone_type(skill.skill_id)
+        if drone_type then
+            self.last_use_hand_drone_type = drone_type
         end
     end)
-local target = gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(1018)
-memory.dynamic_hook_mid("handX_fix_find_drone", {"[rbp+70h+10h]"}, {"CInstance*"}, 0,
-    gm.get_script_function_address(gm.constants._survivor_hand_x_skill_find_drone):add(614), function(args)
-        local actor = Utils.get_inst_safe(args[1].parent)
-        if actor.last_use_hand_drone_type ~= args[1].drone_type then
-            return target
-        end
-    end)
-memory.dynamic_hook_mid("handX_fix_angle", {"rbp+410h-438h", "[rbp+410h+10h]"}, {"RValue*", "CInstance*"}, 0,
-    gm.get_object_function_address("gml_Object_oHANDBaby_Step_2"):add(6545), function(args)
-        if args[2].angle_offsest then
-            args[1].value = args[1].value + args[2].angle_offsest
-        end
-    end)
-HookSystem.pre_script_hook(gm.constants.skill_activate, function(self, other, result, args)
-    local skill = gm.array_get(self.skills, args[1].value).active_skill
-    local drone_type = Utils.get_handy_drone_type(skill.skill_id)
-    if drone_type then
-        self.last_use_hand_drone_type = drone_type
-    end
-end)
+end
 
 -- monsterBossV
 HookSystem.post_script_hook(gm.constants.instance_create, function(self, other, result, args)
@@ -352,7 +355,7 @@ HookSystem.post_script_hook(gm.constants.instance_create, function(self, other, 
         result.value.parent = other
     end
 end)
-memory.dynamic_hook_mid("monsterBossV_targetting_fix", {"rsp+460h-418h", "[rbp+360h+10h]"}, {"RValue*", "CInstance*"},
+memory.dynamic_hook_mid("monsterBossV_targetting_fix", { "rsp+460h-418h", "[rbp+360h+10h]" }, { "RValue*", "CInstance*" },
     0, gm.get_script_function_address(104065):add(4114), function(args)
         local team = args[2].team
         if team == 2 then
@@ -365,25 +368,32 @@ memory.dynamic_hook_mid("monsterBossV_targetting_fix", {"rsp+460h-418h", "[rbp+3
         args[1].value = gm.constants.pActor
     end)
 -- There may have some issues.
-memory.dynamic_hook_mid("monsterBossV_team_fix", {"rax", "[rbp+240h-1D0h]", "[rbp+240h+10h]"},
-    {"RValue*", "RValue*", "CInstance*"}, 0, gm.get_object_function_address("gml_Object_oBossSkill2_Step_2"):add(3066),
-    function(args)
-        local parent = args[3].parent
-        -- didn't check it.
-        if parent.object_index ~= gm.constants.oBoss2 then
-            args[2].value = 2
-            args[1].value = parent.id
-        end
-    end)
-
+do
+    local boss_list = {
+        [gm.constants.oBoss1] = true,
+        [gm.constants.oBoss2Clone] = true,
+        [gm.constants.oBoss3] = true,
+        [gm.constants.oBoss4] = true
+    }
+    memory.dynamic_hook_mid("monsterBossV_team_fix", { "rax", "[rbp+240h-1D0h]", "[rbp+240h+10h]" },
+        { "RValue*", "RValue*", "CInstance*" }, 0,
+        gm.get_object_function_address("gml_Object_oBossSkill2_Step_2"):add(3066),
+        function(args)
+            local parent = args[3].parent
+            if not boss_list[parent.object_index] then
+                args[2].value = 2
+                args[1].value = parent.id
+            end
+        end)
+end
 
 -- monsterBossFinalX
-memory.dynamic_hook_mid("monsterBossFinalX_team_fix", {"[rbp+450h+10h]"}, {"CInstance*"}, 0,
+memory.dynamic_hook_mid("monsterBossFinalX_team_fix", { "[rbp+450h+10h]" }, { "CInstance*" }, 0,
     gm.get_script_function_address(104088):add(9814), function(args)
         args[1].team = args[1].parent.team
     end)
-memory.dynamic_hook_mid("monsterBossFinalX_targetting_fix", {"[rbp+310h-220h]", "[rbp+310h+10h]"},
-    {"RValue*", "CInstance*"}, 0, gm.get_object_function_address("gml_Object_oEfBoss4SliceDoT_Alarm_1"):add(2047),
+memory.dynamic_hook_mid("monsterBossFinalX_targetting_fix", { "[rbp+310h-220h]", "[rbp+310h+10h]" },
+    { "RValue*", "CInstance*" }, 0, gm.get_object_function_address("gml_Object_oEfBoss4SliceDoT_Alarm_1"):add(2047),
     function(args)
         local team = args[2].team
         if team == 2 then
