@@ -197,16 +197,18 @@ HookSystem.post_script_hook(100561, function(self, other, result, args)
     local mobs = Array.wrap(args[1].value.totem_spawn_id)
     for i = 0, mobs:size() - 1 do
         local mob_warrped = Instance.wrap(mobs:get(i))
-        if args[1].value.team == 1 then
-            if not mob_warrped:callback_exists("draw_hp_bar_ally") then
-                mob_warrped:add_callback("onPostDraw", "draw_hp_bar_ally", function(actor)
-                    actor.hud_health_color = 6804360.0
-                    actor:draw_hp_bar_ally()
-                end)
+        if mob_warrped:exists() then
+            if args[1].value.team == 1 then
+                if not mob_warrped:callback_exists("draw_hp_bar_ally") then
+                    mob_warrped:add_callback("onPostDraw", "draw_hp_bar_ally", function(actor)
+                        actor.hud_health_color = 6804360.0
+                        actor:draw_hp_bar_ally()
+                    end)
+                end
+                mob_warrped.is_character_enemy_targettable = 1.0
             end
-            mob_warrped.is_character_enemy_targettable = 1.0
+            mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
         end
-        mob_warrped:actor_team_set(mob_warrped, args[1].value.team)
     end
 end)
 
