@@ -1,6 +1,7 @@
 v3.2.6
 * Fix Providence can't use monsterBossV.
 * Fix lynx totem will crash game.
+* Fix dropping an undroppable item will crash game.
 
 v3.2.5
 * Add drop_gold.

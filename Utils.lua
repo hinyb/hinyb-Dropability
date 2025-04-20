@@ -91,7 +91,11 @@ Utils.find_item_with_localized = function(name, player)
         local val = inventory:get(i)
         local item = Class.ITEM:get(val)
         if (name == Language.translate_token(item:get(2))) then
-            return item:get(8), val
+            local object_id = item:get(8)
+            if object_id == -1 then
+                return
+            end
+            return object_id, val
         end
     end
 end

@@ -25,7 +25,7 @@ HookSystem.post_script_hook(gm.constants.run_create, function(self, other, resul
             if gm.item_count(player, item_id, 0) >= 1 then
                 gm.item_take(player, item_id, 1, 0)
                 local x, y = Utils.get_actual_position(player)
-                local item = gm.instance_create_depth(x, y, 0, item_object_id)
+                local item = gm.instance_create(x, y, item_object_id)
                 table.insert(drop_item_id_list, item.id)
             end
         end
