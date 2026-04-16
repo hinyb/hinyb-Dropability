@@ -11,7 +11,7 @@ for i = 1, #origin_types do
     param_type_size = param_type_size + 1
 end
 function Utils.get_data_type(data)
-    local type_ = type(data)
+    local type_ = lua_type(data)
     if type_ == "number" then
         return Utils.param_type.double
     elseif type_ == "string" then
@@ -85,65 +85,66 @@ for i = 1, #origin_types do
     end
 end
 
-local code_str = {nil, [[
-if not Net.is_single() then
-    if Net.is_host() then
-        ]], nil, [[
-    else
-    ]], nil, [[
-    end
-end
-]], nil}
 local function compile_write_str(type_table)
-    local write_str_table = {"local message = packet:message_begin()"}
-    for i = 1, #type_table do
-        local type = type_table[i]
+    local lines = {}
+    for i, type in ipairs(type_table) do
         local param_name = "a" .. tostring(i)
         local str, count = message_map_write_table[type]:gsub("__replaceit__", param_name)
-        if count == 0 then
-            str = str .. "(" .. param_name .. ")"
-        end
-        table.insert(write_str_table, str)
+        lines[i] = count > 0 and str or (string.format("%s(%s)", str, param_name))
     end
-    return table.concat(write_str_table, "\n")
+    return table.concat(lines, "\n")
 end
 local function compile_read_str(type_table)
-    local read_str_table = {}
-    for i = 1, #type_table do
-        local type = type_table[i]
-        local str = message_map_read_table[type]
-        local param_name = "a" .. tostring(i)
-        table.insert(read_str_table, param_name .. " = " .. str)
+    local lines = {}
+    for i, type in ipairs(type_table) do
+        lines[i] = string.format("local a%d = %s", i, message_map_read_table[type])
     end
-    return table.concat(read_str_table, "\n")
+    return table.concat(lines, "\n")
+end
+local function gen_params_str(count)
+    local t = {}
+    for i = 1, count do t[i] = "a" .. tostring(i) end
+    return table.concat(t, ", ")
 end
 Utils.create_sync_func = function(fn_str, type_table, env)
-    fn_str = fn_str .. "\n"
-    local packet = Packet.new()
-    env = env or {}
-    env.packet = packet
-    env = setmetatable(env, {
+    local packet = Packet.new(Utils.get_debug_id(3))
+    env = setmetatable(env or {}, {
         __index = envy.getfenv(2)
     })
+    env.packet = packet
+    local params_str = gen_params_str(#type_table)
     local write_str = compile_write_str(type_table)
+    local send_func = load(string.format(
+        [[return function(message, %s)
+            %s
+        end]], params_str, write_str), nil, "t", env)()
+    
     local read_str = compile_read_str(type_table)
-    code_str[1] = read_str .. "\n"
-    code_str[3] = write_str .. "\n" .. "message:send_exclude(player)" .. "\n"
-    code_str[5] = ""
-    code_str[7] = fn_str .. "\n"
-    local on_recived_str = "return function(message, player)\n" .. table.concat(code_str) .. "\nend"
-    local on_recived_func = load(on_recived_str, nil, "t", env)()
-    packet:onReceived(on_recived_func)
-    code_str[1] = ""
-    code_str[3] = write_str .. "\n" .. "message:send_to_all()" .. "\n"
-    code_str[5] = write_str .. "\n" .. "message:send_to_host()" .. "\n"
-    code_str[7] = fn_str
-    local params_table = {}
-    for i = 1, #type_table do
-        table.insert(params_table, "a" .. tostring(i))
-    end
-    local sync_func_str = "return function(" .. table.concat(params_table, ", ") .. ")\n" .. table.concat(code_str) ..
-                              "\nend"
-    local sync_func = load(sync_func_str, nil, "t", env)()
-    return sync_func
+    local on_recived_func = load(string.format([[
+        return function(message, player)
+            %s
+            if Net.online then
+                if Net.host then
+                    packet:send_exclude(player, %s)
+                end
+            end
+            %s
+        end
+    ]], read_str, params_str, fn_str), nil, "t", env)()
+    packet:set_serializers(send_func, on_recived_func)
+
+    local sync_func_code = string.format([[
+        return function(%s)
+            if Net.online then
+                if Net.host then
+                    packet:send_to_all(%s)
+                else
+                    packet:send_to_host(%s)
+                end
+            end
+            %s
+        end
+    ]], params_str, params_str, params_str, fn_str)
+
+    return load(sync_func_code, nil, "t", env)()
 end

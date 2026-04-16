@@ -76,17 +76,17 @@ local script_parse_rules = {
     skill_activate = {"self", {
         key = {"actor", "slot_index"},
         value = {"self"}
-    }},
-    damager_attack_process_client = {"type(args[3].value) == \"number\" and args[3].value or args[3].value", {
+    }, "if not self then return end"},
+    damager_attack_process_client = {"lua_type(args[3].value) == \"number\" and args[3].value or args[3].value", {
         key = {"hit_effect", "attack_flags", "victim", "tracer_kind", "tracer_col", "proc", "critical", "damage",
                "damage_color", "xscale", "x", "y", "rng_seed", "percent_hp", "team", "climb"},
         value = {}
     }},
-    actor_set_dead = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+    actor_set_dead = {"lua_type(args[1].value) == \"number\" and args[1].value or args[1].value", {
         key = {"actor", "dead"},
         value = {"gm.CInstance.instance_id_to_CInstance[id]"}
     }},
-    actor_activity_set = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+    actor_activity_set = {"lua_type(args[1].value) == \"number\" and args[1].value or args[1].value", {
         key = {"actor", "activity", "activity_type", "handler_lua", "handler_gml", "auto_end"},
         value = {}
     }},
@@ -105,16 +105,16 @@ local script_parse_rules = {
     attack_collision_resolve = {"self", {
         key = {"bullet", "target"},
         value = {"self"}
-    }},
+    }, "if not self then return end"},
     actor_phy_move = {"self", {
         key = {"actor"},
         value = {"self"}
-    }},
-    damage_inflict_raw = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+    }, "if not self then return end"},
+    damage_inflict_raw = {"lua_type(args[1].value) == \"number\" and args[1].value or args[1].value", {
         key = {"target", "hit_info"},
         value = {}
     }},
-    actor_skill_set = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+    actor_skill_set = {"lua_type(args[1].value) == \"number\" and args[1].value or args[1].value", {
         key = {"actor", "slot_index", "skill_id"},
         value = {}
     }},
@@ -123,16 +123,16 @@ local script_parse_rules = {
     damage_inflict_internal_deduct_hp = {"self", {
         key = {"victim", "source", "damage", "doEffects"},
         value = {"self", "other", "args[1], args[2]"}
-    }},
+    }, "if not self then return end"},
     recalculate_stats = {"self", {
         key = {"actor"},
         value = {"self"}
-    }},
-    apply_buff = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+    }, "if not self then return end"},
+    apply_buff = {"lua_type(args[1].value) == \"number\" and args[1].value or args[1].value", {
         key = {"actor", "buff_id", "time", "stack_value"},
         value = {}
     }},
-    actor_set_state = {"type(args[1].value) == \"number\" and args[1].value or args[1].value", {
+    actor_set_state = {"lua_type(args[1].value) == \"number\" and args[1].value or args[1].value", {
         key = {"actor", "state_id"},
         value = {}
     }}

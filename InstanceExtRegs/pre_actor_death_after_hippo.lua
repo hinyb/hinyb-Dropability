@@ -1,9 +1,9 @@
 HookSystem.clean_hook()
 local callbacks = InstanceExtManager.callbacks
 InstanceExtManager.enable_callback("on_actor_death_after_hippo")
-local hippt_ptr = gm.get_script_function_address(gm.constants.actor_death):add(3159)
-memory.dynamic_hook_mid("on_actor_death_after_hippo", {"[rbp+1F70h+10h]"}, {"CInstance*"}, 0,
-    gm.get_script_function_address(gm.constants.actor_death):add(3249), function(args)
+local hippt_ptr = gm.get_script_function_address(gm.constants.actor_death):add(3213)
+memory.dynamic_hook_mid("on_actor_death_after_hippo", {"[rbp+2880h+10h]"}, {"CInstance*"}, 0,
+    gm.get_script_function_address(gm.constants.actor_death):add(3276), function(args)
         local id = args[1].id
         local inst_callbacks = callbacks[id]
         if not inst_callbacks then

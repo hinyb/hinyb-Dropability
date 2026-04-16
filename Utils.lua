@@ -90,7 +90,7 @@ Utils.find_item_with_localized = function(name, player)
     for i = 0, inventory:size() - 1 do
         local val = inventory:get(i)
         local item = Class.ITEM:get(val)
-        if (name == Language.translate_token(item:get(2))) then
+        if (name == gm.translate(item:get(2))) then
             local object_id = item:get(8)
             if object_id == -1 then
                 return
@@ -108,14 +108,14 @@ Utils.log_information = function(info, offset)
         prefix = "      " .. prefix
     end
     local str = info
-    if type(info) == "userdata" then
+    if lua_type(info) == "userdata" then
         local mt = getmetatable(info)
         if mt.__name == "sol.CScriptRef*" then
             str = info.script_name
         end
     end
     log.info(prefix, str)
-    if type(info) == "table" then
+    if lua_type(info) == "table" then
         for k, v in pairs(info) do
             log.info(prefix, k)
             Utils.log_information(v, offset + 1)
@@ -153,7 +153,7 @@ Utils.check_table_is_array = function(table)
     return true
 end
 Utils.simple_table_to_string = function(table)
-    if type(table) ~= "table" then
+    if lua_type(table) ~= "table" then
         log.error("param must be table", 2)
         return "{}"
     end
@@ -163,10 +163,10 @@ Utils.simple_table_to_string = function(table)
         if not is_array then
             result = result .. "[" .. '"' .. tostring(k) .. '"' .. "]="
         end
-        if type(v) == "table" then
+        if lua_type(v) == "table" then
             result = result .. Utils.simple_table_to_string(v) .. ","
         else
-            if type(v) == "string" then
+            if lua_type(v) == "string" then
                 result = result .. '"' .. tostring(v) .. '"' .. ","
             else
                 result = result .. tostring(v) .. ","
@@ -193,7 +193,7 @@ Utils.remove_value = function(t, v)
     end
 end
 Utils.simple_string_to_table = function(string)
-    if type(string) ~= "string" then
+    if lua_type(string) ~= "string" then
         log.error("param must be string", 2)
         return {}
     end
@@ -220,7 +220,7 @@ Utils.create_array_from_table = function(table)
     local res = gm.array_create(#table, 0)
     for i = 1, #table do
         local val_ = table[i]
-        if type(val_) == "table" then
+        if lua_type(val_) == "table" then
             gm.array_set(res, i - 1, Utils.create_array_from_table(val_))
         else
             gm.array_set(res, i - 1, val_)
@@ -254,7 +254,7 @@ Utils.table_get_length = function(table)
     return result
 end
 function Utils.table_deep_copy(t)
-    if type(t) ~= "table" then
+    if lua_type(t) ~= "table" then
         return t
     end
     local copy = {}
@@ -264,7 +264,10 @@ function Utils.table_deep_copy(t)
     return copy
 end
 Utils.get_inst_safe = function(inst)
-    return type(inst) == "number" and gm.CInstance.instance_id_to_CInstance[inst] or inst
+    if lua_type(inst) == "number" then
+        return gm.CInstance.instance_id_to_CInstance[inst]
+    end
+    return inst
 end
 local instance_list = {}
 local instance_create_flag = false
@@ -281,11 +284,17 @@ Utils.unhook_instance_create = function()
     instance_create_flag = false
 end
 HookSystem.post_script_hook(gm.constants.instance_create_depth, function(self, other, result, args)
-    if instance_create_flag and not Helper.table_has(instance_filter, result.value:get_object_index_self()) then
+    if instance_create_flag and not Util.table_has(instance_filter, result.value:get_object_index_self()) then
         table.insert(instance_list, result.value)
     end
 end)
-
+Utils.get_debug_id = function (level)
+    level = level or 2
+    local info = debug.getinfo(level, "Sl")
+    if not info then return "unknown" end
+    local path = info.source:match("plugins[\\/]+(.*)$") or info.source
+    return string.format("%s: %d", path, info.currentline)
+end
 local names = path.get_files(_ENV["!plugins_mod_folder_path"] .. "/Utils_Extras")
 for _, name in ipairs(names) do
     require(name)

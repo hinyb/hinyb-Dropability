@@ -6,7 +6,7 @@ function InstanceExtManager.add_callback(instance, callback, name, fn)
     if not enable_callbacks[callback] then
         log.error("Can't add non-existed callback", 2)
     end
-    local id = type(instance) == "number" and instance or instance.id
+    local id = lua_type(instance) == "number" and instance or instance.id
     local instance_callbacks = callbacks[id]
     if not instance_callbacks then
         instance_callbacks = {}
@@ -31,7 +31,7 @@ function InstanceExtManager.enable_callback(callback)
     end
 end
 function InstanceExtManager.remove_callback(instance, callback, name)
-    local id = type(instance) == "number" and instance or instance.id
+    local id = lua_type(instance) == "number" and instance or instance.id
     local instance_callbacks = callbacks[id]
     if not instance_callbacks then
         return
@@ -46,7 +46,7 @@ function InstanceExtManager.remove_callback(instance, callback, name)
     callbacks[name] = nil
 end
 function InstanceExtManager.callback_exists(instance, callback, name)
-    local id = type(instance) == "number" and instance or instance.id
+    local id = lua_type(instance) == "number" and instance or instance.id
     local instance_callbacks = callbacks[id]
     if not instance_callbacks then
         return false

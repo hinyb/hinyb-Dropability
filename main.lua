@@ -1,8 +1,10 @@
-mods["RoRRModdingToolkit-RoRR_Modding_Toolkit"].auto(true)
+mods["ReturnsAPI-ReturnsAPI"].auto({mp = true})
+mods["LuaENVY-ENVY"].auto()
+envy = mods["LuaENVY-ENVY"]
 
 mods.on_all_mods_loaded(function()
     for k, v in pairs(mods) do
-        if type(v) == "table" and v.tomlfuncs then
+        if lua_type(v) == "table" and v.tomlfuncs then
             Toml = v
         end
     end
@@ -11,9 +13,6 @@ mods.on_all_mods_loaded(function()
     }
     params = Toml.config_update(_ENV["!guid"], params)
 end)
-
-mods["MGReturns-ENVY"].auto()
-envy = mods["MGReturns-ENVY"]
 
 require("Dynamic")
 require("HookSystem")
@@ -76,7 +75,7 @@ gui.add_always_draw_imgui(function()
     if not ImGui.IsKeyPressed(params['drop_key'], false) then
         return
     end
-    local player = Player.get_client().value
+    local player = Player.get_local().value
     if not Instance.exists(player) then
         return
     end

@@ -73,7 +73,7 @@ function InstanceExtManager.add_skill_instance_captrue_internal(actor, slot_inde
                 end)
             end
         end
-        local state_array = Class.Actor_State:get(actor.actor_state_current_id)
+        local state_array = Class.ActorState:get(actor.actor_state_current_id)
         if state_array then
             local check_func = function(self, other, result, args)
                 return args[2].value == actor
@@ -82,7 +82,7 @@ function InstanceExtManager.add_skill_instance_captrue_internal(actor, slot_inde
             -- For HuntressC2, which uses two states: HuntressC2Draw and HuntressC2Fire.
             InstanceExtManager.add_callback(actor, "pre_actor_set_state", "pre_actor_set_state_for_skill_bullet",
                 function(actor, state_id)
-                    local state_array = Class.Actor_State:get(state_id)
+                    local state_array = Class.ActorState:get(state_id)
                     if not state_array then
                         return
                     end
@@ -104,7 +104,7 @@ function InstanceExtManager.add_skill_instance_captrue_internal(actor, slot_inde
             end)
         end
     end)
-    InstanceExtManager.add_callback(actor, "post_instance_destroy", name, function(actor)
+    gm.event_hook_post_add(actor, gm.constants.ev_destroy, 0, name, function (actor)
         skill_captrue_callbacks[actor.id] = nil
     end)
 end
@@ -206,7 +206,7 @@ function InstanceExtManager.add_skill_bullet_callback(actor, slot_index, name, c
     InstanceExtManager.add_skill_bullet_captrue_local(actor, slot_index, name .. callback_id, function(attack)
         attack_info_add_callback(attack.attack_info, callback_id, attack_info_name)
     end)
-    InstanceExtManager.add_callback(actor, "post_instance_destroy", name, function(attack)
+    gm.event_hook_post_add(actor, gm.constants.ev_destroy, 0, name, function(attack)
         attack_info_callbacks[attack_info_name] = nil
     end)
     if attack_info_callbacks[attack_info_name] == nil then
@@ -240,10 +240,10 @@ function InstanceExtManager.add_skill_bullet_fake_hit_actually_attack(actor, slo
         function(attack_info, hit_list, max_index)
             for i = 0, max_index - 1, 3 do
                 local hit_target = gm.ds_list_find_value(hit_list, i)
-                if type(hit_target) ~= "number" then
+                if lua_type(hit_target) ~= "number" then
                     if Instance.exists(hit_target) then
                         if hit_target:hit_should_count_towards_total_hit_number_client_and_server() then
-                            if gm.call("gml_Script_object_is", hit_target, hit_target, hit_target, 344) then
+                            if hit_target:object_is(hit_target, 344) then
                                 if hit_target:attack_collision_resolve() ~= -4 then
                                     deal_func(attack_info, hit_target)
                                 end
@@ -346,18 +346,16 @@ HookSystem.pre_script_hook(gm.constants.damager_hit_process, function(self, othe
 end)
 
 local callbacks = InstanceExtManager.callbacks
-memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"[rbp+9D0h-A10h]", "rsp+0AD0h-A60h"}, {"RValue**", "RValue*"}, 0,
-    gm.get_script_function_address(gm.constants.damager_attack_process):add(27333), function(args)
-        local victim = args[2].value
-        if type(victim) == "number" then
-            log.warning("If you see this message, please report it")
-            gm.show_debug_message(gm.debug_get_callstack())
-            return false
+memory.dynamic_hook_mid("post_bullet_kill_proc_hook", {"[r13]", "rbp+0B50h-BD0h"}, {"RValue*", "RValue*"}, 0,
+    gm.get_script_function_address(gm.constants.damager_attack_process):add(31305), function(args)
+        local victim = Utils.get_inst_safe(args[2].value)
+        if not victim then
+            return
         end
         if callbacks[victim.id] and callbacks[victim.id]["post_be_kill_proc"] then
             callbacks[victim.id]["post_be_kill_proc"] = nil
         end
-        local attack_info = memory.resolve_pointer_to_type(args[1]:deref():get_address(), "RValue*").value
+        local attack_info = args[1].value
         local attack_info_callbacks_kill = attack_info.attack_info_callbacks_kill
         if attack_info_callbacks_kill then
             if callbacks[victim.id] == nil then

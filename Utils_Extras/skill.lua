@@ -293,9 +293,9 @@ Utils.get_empty_skill_num = function(inst)
     return result
 end
 Utils.find_skill_id_with_name = function(name)
-    for i = 0, Class.SKILL:size() - 1 do
-        local skill = Class.SKILL:get(i)
-        if type(skill) ~= "number" and skill:get(1) == name then
+    for i = 0, Class.Skill:size() - 1 do
+        local skill = Class.Skill:get(i)
+        if lua_type(skill) ~= "number" and skill:get(1) == name then
             return i
         end
     end
@@ -342,7 +342,7 @@ Utils.random_skill_id = function(random_seed)
     local random = Utils.LCG_random(random_seed)
     return function()
         while true do
-            local rnd_skill_id = random(1, Class.SKILL:size()) - 1
+            local rnd_skill_id = random(1, Class.Skill:size()) - 1
             if Utils.check_random_skill(rnd_skill_id) then
                 return rnd_skill_id
             end
@@ -367,15 +367,15 @@ Utils.get_name_with_slot_index = function(slot_index)
     return slot_map[slot_index + 1]
 end
 Utils.get_slot_index_with_skill_id = function(skill_id)
-    local slot_index = skill_id_to_slot[skill_id] or Utils.get_slot_index_with_name(Class.SKILL:get(skill_id):get(1))
+    local slot_index = skill_id_to_slot[skill_id] or Utils.get_slot_index_with_name(Class.Skill:get(skill_id):get(1))
     if slot_index == nil then
         log.warning("Can't get the skill's slot_index " .. skill_id)
     end
     return slot_index
 end
 Utils.wrap_skill = function(skill_id)
-    local skill = Class.SKILL:get(skill_id)
-    if skill == nil or type(skill) == "number" then
+    local skill = Class.Skill:get(skill_id)
+    if skill == nil or lua_type(skill) == "number" then
         log.error("Can't get wrap skill with given skill_id" .. tostring(skill_id))
     end
     return {
@@ -419,12 +419,12 @@ Utils.find_skill_with_localized = function(name, player)
     local skills = Array.wrap(player.skills)
     for i = 0, skills:size() - 1 do
         local skill = skills:get(i).active_skill
-        if (name == Language.translate_token(Class.SKILL:get(skill.skill_id):get(2))) then
+        if (name == gm.translate(Class.Skill:get(skill.skill_id):get(2))) then
             return skill
         end
     end
 end
-Initialize(function()
+Initialize.add_hotloadable(function()
     local skill_t = {
         [6] = 0,
         [7] = 1,
@@ -434,9 +434,8 @@ Initialize(function()
     for sur_index = 0, #Class.Survivor - 1 do
         local survivor = Class.Survivor:get(sur_index)
         for skill_family_index, skill_slot in pairs(skill_t) do
-            local skill_family = survivor:get(skill_family_index).elements
-            for skill_index = 0, #skill_family - 1 do
-                local skill = gm.array_get(skill_family, skill_index)
+            local skill_family = survivor[skill_family_index + 1].elements
+            for _, skill in pairs(skill_family) do
                 skill_id_to_slot[skill.skill_id] = skill_slot
             end
         end

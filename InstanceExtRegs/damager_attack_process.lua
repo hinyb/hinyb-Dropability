@@ -16,7 +16,7 @@ HookSystem.pre_script_hook(gm.constants.damager_attack_process, function(self, o
     local need_to_interrupt = false
     for i = 0, max_index - 1, 3 do
         local hit_target = gm.ds_list_find_value(hit_list, i)
-        if type(hit_target) ~= "number" then
+        if lua_type(hit_target) ~= "number" then
             local id = hit_target.id
             local inst_callbacks = callbacks[id]
             if inst_callbacks then

@@ -1,3 +1,6 @@
+v4.0.0
+* Update to ReturnsAPI
+
 v3.2.6
 * Fix Providence can't use monsterBossV.
 * Fix lynx totem will crash game.

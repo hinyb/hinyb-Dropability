@@ -5,22 +5,23 @@ drop_item = function(player, item_id, item_object_id)
     log.error("drop_item hasn't been initialized")
 end
 local function init()
-    local drop_item_packet = Packet.new()
-    drop_item_packet:onReceived(function(message, player)
-        local item_id = message:read_int()
-        local item_object_id = message:read_int()
+    local drop_item_packet = Packet.new("drop_item_packet")
+    drop_item_packet:set_serializers(function(buffer, item_id, item_object_id)
+        buffer:write_int(item_id)
+        buffer:write_int(item_object_id)
+    end, function(buffer, player)
+        local item_id = buffer:read_int()
+        local item_object_id = buffer:read_int()
         drop_item(player.value, item_id, item_object_id)
     end)
+
     drop_item_send = function(player, item_id, item_object_id)
-        local sync_message = drop_item_packet:message_begin()
-        sync_message:write_int(item_id)
-        sync_message:write_int(item_object_id)
-        sync_message:send_to_host()
+        drop_item_packet:send_to_host(item_id, item_object_id)
     end
 end
 
 HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-    if not Net.is_client() then
+    if not Net.client then
         drop_item = function(player, item_id, item_object_id)
             if gm.item_count(player, item_id, 0) >= 1 then
                 gm.item_take(player, item_id, 1, 0)
@@ -61,4 +62,4 @@ end)
 HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
     drop_item_id_list = {}
 end)
-Initialize(init)
+Initialize.add_hotloadable(init)

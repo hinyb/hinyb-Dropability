@@ -58,7 +58,7 @@ SkillPickup.get_active_skill_diff = function(skill)
     result.slot_index = skill.slot_index
     result.stock = skill.stock
     --[[
-    local default_skill = Class.SKILL:get(skill.skill_id)
+    local default_skill = Class.Skill:get(skill.skill_id)
     local diff_check_table = Utils.get_skill_diff_check_table()
     if skill.disable_stock_regen ~= not default_skill:get(10) then
         result["disable_stock_regen"] = skill.disable_stock_regen
@@ -127,19 +127,19 @@ SkillPickup.add_post_create_func = function(fn)
     post_create_funcs[#post_create_funcs + 1] = fn
 end
 local function init_skillPickup(target, skill_params, x, y)
-    local default_skill = Class.SKILL:get(skill_params.skill_id)
+    local default_skill = Class.Skill:get(skill_params.skill_id)
     target.sprite_index = default_skill:get(4)
     target.image_index = default_skill:get(5)
-    target.text = Language.translate_token(default_skill:get(2))
+    target.text = gm.translate(default_skill:get(2))
     for k, v in pairs(skill_params) do
-        if type(v) == "table" then
+        if lua_type(v) == "table" then
             target[k] = Utils.create_array_from_table(v)
         else
             target[k] = v
             if k == "subimage" then
                 target.image_index = v
             elseif k == "name" then
-                target.text = Language.translate_token(v)
+                target.text = gm.translate(v)
             end
         end
     end
@@ -152,102 +152,111 @@ local function init()
         SkillPickup.set_skill(actor, inst)
         inst.activator = actor
     end
-    local oSkillPickup = Object.new("hinyb", "oSkillPickup", Object.PARENT.interactable)
+    local oSkillPickup = Object.new("oSkillPickup", Object.Parent.INTERACTABLE)
     gm.constants.oSkillPickup = oSkillPickup.value
-    oSkillPickup.obj_sprite = 114
-    oSkillPickup.obj_depth = 5.0
+    oSkillPickup:set_sprite(114)
+    oSkillPickup:set_depth(-290)
     local pickup_skill_message_create
     HookSystem.pre_script_hook(gm.constants.interactable_set_active, function(self, other, result, args)
         local inst = args[1].value
         if inst.__object_index == oSkillPickup.value then
             local actor = args[2].value
             setup_skill(inst, actor)
-            if Net.is_host() then
-                pickup_skill_message_create(inst, actor):send_to_all()
-            elseif Net.is_client() then
-                pickup_skill_message_create(inst, actor):send_to_host()
+            if Net.online then
+                if Net.host then
+                    pickup_skill_message_create(inst, actor):send_to_all()
+                elseif Net.client then
+                    pickup_skill_message_create(inst, actor):send_to_host()
+                end
             end
             gm.instance_destroy(inst.id)
             return false
         end
     end)
-    local pickup_skill_packet = Packet.new()
-    pickup_skill_packet:onReceived(function(message, player)
-        local interactable = message:read_instance().value
-        local activator = message:read_instance().value
+    local pickup_skill_packet = Packet.new("pickup_skill_packet")
+    pickup_skill_packet:set_serializers(function(buffer, interactable, activator)
+        buffer:write_instance(interactable)
+        buffer:write_instance(activator)
+    end, function(buffer, player)
+        local interactable = buffer:read_instance().value
+        local activator = buffer:read_instance().value
+
         setup_skill(interactable, activator)
-        if Net.is_host() then
-            pickup_skill_message_create(interactable, activator):send_exclude(player)
+
+        if Net.host then
+            pickup_skill_packet:send_exclude(player, interactable, activator)
         end
+
         gm.instance_destroy(interactable.id)
     end)
     pickup_skill_message_create = function(interactable, activator)
-        local sync_message = pickup_skill_packet:message_begin()
-        sync_message:write_instance(interactable)
-        sync_message:write_instance(activator)
-        return sync_message
+        pickup_skill_packet:send_to_host(interactable, activator)
     end
-    local drop_skill_send
     local function drop_skill(x, y, skill_params)
-        local skill = gm.instance_create(x - 20, y - 20, gm.constants.oSkillPickup)
-        init_skillPickup(skill, skill_params, x - 20, y - 20)
-        gm.call("gml_Script_interactable_sync", skill, skill)
-        local sync_message = drop_skill_send(skill_params)
-        sync_message:write_instance(skill)
-        sync_message:send_to_all()
+        local skill = gm.instance_create(x - 15, y - 15, gm.constants.oSkillPickup)
+        init_skillPickup(skill, skill_params, x - 15, y - 15)
+        skill:interactable_sync()
+        drop_skill_packet:send_to_all(skill_params, skill)
     end
-    local drop_skill_packet = Packet.new()
-    drop_skill_packet:onReceived(function(message, player)
-        local skill_id = message:read_int()
-        local slot_index = message:read_int()
-        local ext_num = message:read_int()
+    local drop_skill_packet = Packet.new("drop_skill_packet")
+    drop_skill_packet:set_serializers(function(buffer, skill_params, skill_instance)
+        buffer:write_int(skill_params.skill_id)
+        buffer:write_int(skill_params.slot_index)
+
+        local ext_count = Utils.table_get_length(skill_params) - 2
+        buffer:write_int(ext_count)
+
+        for k, v in pairs(skill_params) do
+            if k ~= "skill_id" and k ~= "slot_index" then
+                if lua_type(v) == "table" then
+                    buffer:write_string("arr_" .. tostring(k))
+                    buffer:write_string(Utils.simple_table_to_string(v))
+                else
+                    buffer:write_string(tostring(k))
+                    buffer:write_string(tostring(v))
+                end
+            end
+        end
+
+        if skill_instance then
+            buffer:write_instance(skill_instance)
+        end
+    end, function(buffer, player)
+        local skill_id = buffer:read_int()
+        local slot_index = buffer:read_int()
+        local ext_num = buffer:read_int()
+
         local skill_params = {}
         skill_params.skill_id = skill_id
         skill_params.slot_index = slot_index
+
         for _ = 1, ext_num do
-            local mem = message:read_string()
-            local val = message:read_string()
+            local mem = buffer:read_string()
+            local val = buffer:read_string()
             if mem:sub(1, 4) == "arr_" then
                 skill_params[mem:sub(5, -1)] = Utils.simple_string_to_table(val)
             else
                 skill_params[mem] = Utils.parse_string_to_value(val)
             end
         end
-        if Net.is_host() then
+
+        if Net.host then
             drop_skill(player.x, player.y, skill_params)
         else
-            local skill = message:read_instance().value
+            local skill = buffer:read_instance().value
             init_skillPickup(skill, skill_params, skill.x, skill.y)
         end
     end)
-    drop_skill_send = function(skill_params)
-        local sync_message = drop_skill_packet:message_begin()
-        sync_message:write_int(skill_params.skill_id)
-        sync_message:write_int(skill_params.slot_index)
-        sync_message:write_int(Utils.table_get_length(skill_params) - 2)
-        for k, v in pairs(skill_params) do
-            if k ~= "skill_id" and k ~= "slot_index" then
-                if type(v) == "table" then
-                    sync_message:write_string("arr_" .. tostring(k))
-                    sync_message:write_string(Utils.simple_table_to_string(v))
-                else
-                    sync_message:write_string(tostring(k))
-                    sync_message:write_string(tostring(v))
-                end
-            end
-        end
-        return sync_message
-    end
     HookSystem.post_script_hook(gm.constants.run_create, function(self, other, result, args)
-        if Net.is_single() then
+        if not Net.online then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params, x, y)
                 end
-                local skill = gm.instance_create(x - 20, y - 20, gm.constants.oSkillPickup)
-                init_skillPickup(skill, skill_params, x - 20, y - 20)
+                local skill = gm.instance_create(x - 15, y - 15, gm.constants.oSkillPickup)
+                init_skillPickup(skill, skill_params, x - 15, y - 15)
             end
-        elseif Net.is_host() then
+        elseif Net.host then
             SkillPickup.skill_create = function(x, y, skill_params)
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params, x, y)
@@ -259,8 +268,7 @@ local function init()
                 for i = 1, #pre_create_funcs do
                     pre_create_funcs[i](skill_params, x, y)
                 end
-                local sync_message = drop_skill_send(skill_params)
-                sync_message:send_to_host()
+                drop_skill_packet:send_to_host(skill_params)
             end
         end
     end)
@@ -269,8 +277,8 @@ local function init()
         params.slot_index = a2
         params.skill_id = a3
         SkillPickup.set_skill(a1, params, a5)
-    ]], {Utils.param_type.instance, Utils.param_type.byte, Utils.param_type.ushort, Utils.param_type.table,
-         Utils.param_type.byte})
+    ]], { Utils.param_type.instance, Utils.param_type.byte, Utils.param_type.ushort, Utils.param_type.table,
+        Utils.param_type.byte })
     SkillPickup.set_skill_sync = function(actor, params, is_override)
         if is_override == nil then
             is_override = false
@@ -281,4 +289,4 @@ local function init()
         set_skill_sync_internal(actor, params.slot_index, params.skill_id, copy_params, is_override)
     end
 end
-Initialize(init)
+Initialize.add_hotloadable(init)
