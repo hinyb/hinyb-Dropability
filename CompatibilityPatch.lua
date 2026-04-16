@@ -346,7 +346,7 @@ HookSystem.post_script_hook(gm.constants.instance_create, function(self, other, 
         result.value.parent = other
     end
 end)
-memory.dynamic_hook_mid("monsterBossV_targetting_fix", { "rsp+460h-418h", "[rbp+360h+10h]" }, { "RValue*", "CInstance*" },
+memory.dynamic_hook_mid("monsterBossV_targetting_fix", { "rsp+610h-5D8h", "rbp+510h+10h" }, { "RValue*", "CInstance*" },
     0, gm.get_script_function_address(gm.constants["anon@12263@anon@11972@anon@30@scr_skills_enemy_boss1@scr_skills_enemy_boss1"]):add(4980), function(args)
         local team = args[2].team
         if team == 2 then
@@ -380,7 +380,11 @@ end
 
 -- monsterBossFinalX
 memory.dynamic_hook_mid("monsterBossFinalX_team_fix", { "[rbp+4A0h+10h]" }, { "CInstance*" }, 0,
-    gm.get_script_function_address(gm.constants["anon@28770@anon@30@scr_skills_enemy_boss1@scr_skills_enemy_boss1"]):add(8764), function(args)
+    gm.get_script_function_address(gm.constants["anon@28770@anon@30@scr_skills_enemy_boss1@scr_skills_enemy_boss1"]):add(12742), function(args)
+        args[1].team = args[1].parent.team
+    end)
+memory.dynamic_hook_mid("monsterBossFinalX_team_fix2", { "[rbp+2F0h+10h]" }, { "CInstance*" }, 0,
+    gm.get_script_function_address(gm.constants["anon@31017@anon@30@scr_skills_enemy_boss1@scr_skills_enemy_boss1"]):add(8795), function(args)
         args[1].team = args[1].parent.team
     end)
 memory.dynamic_hook_mid("monsterBossFinalX_targetting_fix", { "[rbp+2D0h-160h]", "[rbp+2D0h+10h]" },

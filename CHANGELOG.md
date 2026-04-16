@@ -1,3 +1,6 @@
+v4.0.1
+* Fix crash when fight providence.
+
 v4.0.0
 * Update to ReturnsAPI
 
