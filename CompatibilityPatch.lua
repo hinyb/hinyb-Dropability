@@ -218,7 +218,7 @@ HookSystem.post_script_hook(gm.constants["set_state@gml_Object_oArtiSnap_Create_
         self:__actor_update_target_marker()
     end
 end)
-memory.dynamic_hook_mid("tentacle_hp_color_fix", { "rdi", "r12" }, { "RValue*", "RValue*" }, 0,
+memory.dynamic_hook_mid("tentacle_hp_color_fix", { "[rbp+90h-58h]", "[rbp+90h-60h]" }, { "RValue*", "RValue*" }, 0,
     gm.get_script_function_address(gm.constants["anon@900@anon@30@scr_ror_items_init_boss@scr_ror_items_init_boss"]):add(2096), function(args)
         if args[1].value ~= 1.0 then
             InstanceExtManager.add_callback(args[2].value, "post_recalculate_stats", "tentacle_hp_color_fix", function(actor)
@@ -366,11 +366,11 @@ do
         [gm.constants.oBoss3] = true,
         [gm.constants.oBoss4] = true
     }
-    memory.dynamic_hook_mid("monsterBossV_team_fix", { "rax", "[rbp+2A0h-220h]", "[rbp+2A0h+10h]" },
+    memory.dynamic_hook_mid("monsterBossV_team_fix", { "rax", "[rbp+2A0h-140h]", "[rbp+2A0h+10h]" },
         { "RValue*", "RValue*", "CInstance*" }, 0,
         gm.get_object_function_address("gml_Object_oBossSkill2_Step_2"):add(3860),
         function(args)
-            local parent = args[3].parent
+            local parent = Utils.get_inst_safe(args[3].parent.parent)
             if not boss_list[parent.object_index] then
                 args[2].value = 2
                 args[1].value = parent.id

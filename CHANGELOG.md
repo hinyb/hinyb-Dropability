@@ -1,3 +1,7 @@
+v4.0.2
+* Fix tentacle hp color.
+* Fix oBossSkill2 crash.
+
 v4.0.1
 * Fix crash when fight providence.
 
