@@ -346,7 +346,7 @@ HookSystem.post_script_hook(gm.constants.instance_create, function(self, other, 
         result.value.parent = other
     end
 end)
-memory.dynamic_hook_mid("monsterBossV_targetting_fix", { "rsp+610h-5D8h", "rbp+510h+10h" }, { "RValue*", "CInstance*" },
+memory.dynamic_hook_mid("monsterBossV_targetting_fix", { "rsp+610h-5D8h", "[rbp+510h+10h]" }, { "RValue*", "CInstance*" },
     0, gm.get_script_function_address(gm.constants["anon@12263@anon@11972@anon@30@scr_skills_enemy_boss1@scr_skills_enemy_boss1"]):add(4980), function(args)
         local team = args[2].team
         if team == 2 then
@@ -370,7 +370,11 @@ do
         { "RValue*", "RValue*", "CInstance*" }, 0,
         gm.get_object_function_address("gml_Object_oBossSkill2_Step_2"):add(3860),
         function(args)
-            local parent = Utils.get_inst_safe(args[3].parent.parent)
+            local creator = Utils.get_inst_safe(args[3].parent)
+            if not creator then
+                return
+            end
+            local parent = Utils.get_inst_safe(creator.parent) or creator
             if not boss_list[parent.object_index] then
                 args[2].value = 2
                 args[1].value = parent.id
