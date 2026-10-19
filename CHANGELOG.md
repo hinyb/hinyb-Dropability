@@ -1,3 +1,6 @@
+v4.0.3
+* Fix Providence's clone and circle attacks not spawning (Thanks to @EudugeWWolf)
+
 v4.0.2
 * Fix tentacle hp color.
 * Fix oBossSkill2 crash.
